@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * NeutromeLabs AiLand Admin Menu Definition
+ *
+ * @category    NeutromeLabs
+ * @package     NeutromeLabs_AiLand
+ * @author      Cline (AI Assistant)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <!-- Add item under Content -> Elements -->
+        <add id="NeutromeLabs_AiLand::generate_landing"
+             title="Generate AI Landing"
+             module="NeutromeLabs_AiLand"
+             sortOrder="100"
+             parent="Magento_Backend::content_elements"
+             action="ailand/landing/new"
+             resource="NeutromeLabs_AiLand::generate"/>
+        <!--
+            Resource definition:
+            NeutromeLabs_AiLand::generate - Top level ACL for the feature
+            We'll define ACL rules later in etc/acl.xml if needed for finer control.
+            For now, this resource string links the menu item to potential ACL checks.
+        -->
+    </menu>
+</config>

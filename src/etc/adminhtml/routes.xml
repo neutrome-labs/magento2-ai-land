@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * NeutromeLabs AiLand Admin Routes Definition
+ *
+ * @category    NeutromeLabs
+ * @package     NeutromeLabs_AiLand
+ * @author      Cline (AI Assistant)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="admin">
+        <route id="ailand" frontName="ailand">
+            <module name="NeutromeLabs_AiLand" before="Magento_Backend"/>
+            <!-- 'before="Magento_Backend"' ensures our module's routes are checked before the generic backend fallback -->
+        </route>
+    </router>
+</config>

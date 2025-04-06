@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * NeutromeLabs AiLand Module Definition
+ *
+ * @category    NeutromeLabs
+ * @package     NeutromeLabs_AiLand
+ * @author      Cline (AI Assistant)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="NeutromeLabs_AiLand" setup_version="1.0.0">
+        <sequence>
+            <!-- Dependencies, e.g., Magento_Cms for CMS Block interaction -->
+            <module name="Magento_Backend"/>
+            <module name="Magento_Ui"/>
+            <module name="Magento_Cms"/>
+            <module name="Magento_Catalog"/> <!-- For Product/Category data -->
+            <module name="Magento_Config"/> <!-- For System Configuration -->
+        </sequence>
+    </module>
+</config>
