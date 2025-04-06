@@ -105,13 +105,15 @@ class HtmlGenerator
         if (!empty($contextData['data_source_context'])) {
             $htmlMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
         }
+        
+        // Add base prompt content goal
+        $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
+        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
+        $htmlMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
         $htmlMessages[] = ['role' => 'user', 'content' => "Technical Design Plan:\n" . $technicalDesign];
         if ($tailwindConfig) {
             $htmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration:\n```javascript\n" . $tailwindConfig . "\n```"];
         }
-
-        // Use PromptService to add GraphQL instruction
-        $this->promptService->addGraphQlInstructionToMessages($htmlMessages, $generateInteractive, $stageIdentifier);
 
         // Use PromptService to add reference image
         $this->promptService->addReferenceImageToMessages($htmlMessages, $referenceImageUrl, $stageIdentifier);
@@ -174,10 +176,12 @@ class HtmlGenerator
             $improveMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
         }
 
+        // Add base prompt content goal
+        $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
+        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
+        $improveMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
+        
         $improveMessages[] = ['role' => 'user', 'content' => "User's Improvement Request:\n" . $customPrompt];
-
-        // Use PromptService to add GraphQL instruction
-        $this->promptService->addGraphQlInstructionToMessages($improveMessages, $generateInteractive, $stageIdentifier);
 
         // Use PromptService to add reference image
         $this->promptService->addReferenceImageToMessages($improveMessages, $referenceImageUrl, $stageIdentifier);
@@ -241,12 +245,15 @@ class HtmlGenerator
         if ($tailwindConfig) {
             $retryHtmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
         }
+
+        // Add base prompt content goal
+        $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
+        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
+        $retryHtmlMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
+        
         if (!empty($customPrompt)) {
            $retryHtmlMessages[] = ['role' => 'user', 'content' => "Additional User Instructions for this attempt:\n" . $customPrompt];
         }
-
-        // Use PromptService to add GraphQL instruction
-        $this->promptService->addGraphQlInstructionToMessages($retryHtmlMessages, $generateInteractive, $stageIdentifier);
 
         // Use PromptService to add reference image
         $this->promptService->addReferenceImageToMessages($retryHtmlMessages, $referenceImageUrl, $stageIdentifier);

@@ -25,9 +25,13 @@ use Psr\Log\LoggerInterface;
  */
 class PromptService
 {
-    // Config paths for base prompts (copied from DesignGenerator)
+    // Config paths for base prompts
     const XML_PATH_PRODUCT_PROMPT = 'ailand/openrouter/product_base_prompt';
     const XML_PATH_CATEGORY_PROMPT = 'ailand/openrouter/category_base_prompt';
+    const XML_PATH_GENERIC_PROMPT = 'ailand/openrouter/generic_base_prompt';
+    const XML_PATH_PRODUCT_INTERACTIVE_PROMPT = 'ailand/openrouter/product_interactive_prompt';
+    const XML_PATH_CATEGORY_INTERACTIVE_PROMPT = 'ailand/openrouter/category_interactive_prompt';
+    const XML_PATH_GENERIC_INTERACTIVE_PROMPT = 'ailand/openrouter/generic_interactive_prompt';
     const MODULE_NAME = 'NeutromeLabs_AiLand'; // Module name for directory reading
 
     /**
@@ -103,30 +107,28 @@ class PromptService
      * @param int $storeId
      * @return string
      */
-    public function getBasePrompt(?string $dataSourceType, int $storeId): string
+    public function getBasePrompt(?string $dataSourceType, int $storeId, bool $generateInteractive = false): string
     {
         $configPath = null;
-        $defaultPromptFile = 'default_generic_prompt.txt';
+        $defaultPrompt = 'Generate content based on the provided context.';
 
         switch ($dataSourceType) {
             case 'product':
-                $configPath = self::XML_PATH_PRODUCT_PROMPT;
-                $defaultPromptFile = 'default_product_prompt.txt';
+                $configPath = $generateInteractive ? self::XML_PATH_PRODUCT_INTERACTIVE_PROMPT : self::XML_PATH_PRODUCT_PROMPT;
                 break;
             case 'category':
-                $configPath = self::XML_PATH_CATEGORY_PROMPT;
-                $defaultPromptFile = 'default_category_prompt.txt';
+                $configPath = $generateInteractive ? self::XML_PATH_CATEGORY_INTERACTIVE_PROMPT : self::XML_PATH_CATEGORY_PROMPT;
+                break;
+            default:
+                $configPath = $generateInteractive ? self::XML_PATH_GENERIC_INTERACTIVE_PROMPT : self::XML_PATH_GENERIC_PROMPT;
                 break;
         }
 
         $prompt = $configPath ? $this->scopeConfig->getValue($configPath, ScopeInterface::SCOPE_STORE, $storeId) : null;
 
         if (empty($prompt)) {
-            $prompt = $this->getPromptFromFile($defaultPromptFile);
-            if (empty($prompt)) {
-                $this->logger->error('Could not load default prompt from file: ' . $defaultPromptFile);
-                return 'Generate content based on the provided context.'; // Fallback
-            }
+            $this->logger->error('Missing required prompt configuration for: ' . ($dataSourceType ?? 'generic'));
+            return $defaultPrompt;
         }
 
         return trim($prompt);
@@ -180,27 +182,6 @@ class PromptService
                 ];
                 $this->logger->info('Added reference image as a separate message.', ['stage' => $stageIdentifier, 'url' => $trimmedUrl]);
             }
-        }
-    }
-
-    /**
-     * Adds the GraphQL instruction message if needed.
-     *
-     * @param array $messages The current message array (passed by reference).
-     * @param bool $generateInteractive Whether to add the instruction.
-     * @param string $stageIdentifier For logging purposes.
-     * @return void
-     */
-    public function addGraphQlInstructionToMessages(array &$messages, bool $generateInteractive, string $stageIdentifier): void
-    {
-        if ($generateInteractive) {
-            $messages[] = [
-                'role' => 'user',
-                'content' => "IMPORTANT IMPLEMENTATION NOTE: When generating the HTML and JavaScript, DO NOT hardcode dynamic data (like product names, prices, descriptions, category lists, etc.) or actions (like add to cart). Instead, implement the necessary logic using Magento 2's GraphQL API. Assume the GraphQL endpoint is available at '/graphql'. Use appropriate queries and mutations for data fetching and actions."
-            ];
-            $this->logger->info('Adding GraphQL instruction.', ['stage' => $stageIdentifier]);
-        } else {
-             $this->logger->info('Skipping GraphQL instruction.', ['stage' => $stageIdentifier]);
         }
     }
 }

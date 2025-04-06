@@ -18,9 +18,6 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 // Removed: Curl, JsonSerializer
 use Psr\Log\LoggerInterface;
-use Magento\Framework\Module\Dir\Reader as ModuleDirReader; // Keep for prompt reading
-use Magento\Framework\Filesystem\Driver\File as FileDriver;
-use Magento\Framework\Exception\FileSystemException;
 use Magento\Store\Model\StoreManagerInterface;
 // Removed: ThemeCollectionFactory, ComponentRegistrarInterface, ComponentRegistrar, DesignInterface
 
@@ -37,10 +34,6 @@ class AiGenerator
     const XML_PATH_API_KEY = 'ailand/openrouter/api_key';
     const XML_PATH_THINKING_MODEL = 'ailand/openrouter/thinking_model'; // New path
     const XML_PATH_RENDERING_MODEL = 'ailand/openrouter/rendering_model'; // New path
-    const XML_PATH_PRODUCT_PROMPT = 'ailand/openrouter/product_base_prompt'; // Keep for getBasePrompt logic (if needed here)
-    const XML_PATH_CATEGORY_PROMPT = 'ailand/openrouter/category_base_prompt'; // Keep for getBasePrompt logic (if needed here)
-    // Removed: OPENROUTER_API_ENDPOINT
-    const MODULE_NAME = 'NeutromeLabs_AiLand'; // Keep for prompt reading (if needed here)
 
     // Default Models (Keep)
     const DEFAULT_THINKING_MODEL = 'deepseek/deepseek-r1:free';
@@ -73,16 +66,6 @@ class AiGenerator
     private $logger;
 
     /**
-     * @var ModuleDirReader
-     */
-    private $moduleDirReader;
-
-    /**
-     * @var FileDriver
-     */
-    private $fileDriver;
-
-    /**
      * @var StoreManagerInterface
      */
     private $storeManager;
@@ -105,8 +88,6 @@ class AiGenerator
      * @param ProductRepositoryInterface $productRepository
      * @param CategoryRepositoryInterface $categoryRepository
      * @param LoggerInterface $logger
-     * @param ModuleDirReader $moduleDirReader
-     * @param FileDriver $fileDriver
      * @param StoreManagerInterface $storeManager
      * @param DesignGenerator $designGenerator // Added
      * @param HtmlGenerator $htmlGenerator     // Added
@@ -117,8 +98,6 @@ class AiGenerator
         ProductRepositoryInterface $productRepository,
         CategoryRepositoryInterface $categoryRepository,
         LoggerInterface $logger,
-        ModuleDirReader $moduleDirReader,
-        FileDriver $fileDriver,
         StoreManagerInterface $storeManager,
         DesignGenerator $designGenerator, // Added
         HtmlGenerator $htmlGenerator      // Added
@@ -128,8 +107,6 @@ class AiGenerator
         $this->productRepository = $productRepository;
         $this->categoryRepository = $categoryRepository;
         $this->logger = $logger;
-        $this->moduleDirReader = $moduleDirReader;
-        $this->fileDriver = $fileDriver;
         $this->storeManager = $storeManager;
         $this->designGenerator = $designGenerator; // Added
         $this->htmlGenerator = $htmlGenerator;     // Added
@@ -392,108 +369,6 @@ class AiGenerator
     }
 
     /**
-     * Build the user instruction part of the prompt for the design stage.
-     *
-     * @param string $customPrompt
-     * @param array $contextData
-     * @param string|null $dataSourceType
-     * @return string
-     */
-    private function buildDesignUserPrompt(string $customPrompt, array $contextData, ?string $dataSourceType): string
-    {
-        $basePromptType = !empty($contextData['data_source_context']) ? $dataSourceType : null;
-        $contentGoal = $this->getBasePrompt($basePromptType);
-
-        $userInstructionPrompt = "Content Goal: " . $contentGoal . "\n";
-
-        if (!empty($customPrompt)) {
-            $userInstructionPrompt .= "User's Custom Instructions: " . $customPrompt . "\n";
-        }
-
-        return trim($userInstructionPrompt);
-    }
-
-
-    /**
-     * Call the OpenRouter API and handle response/errors.
-     *
-     * @param string $apiKey
-     * @param string $model
-     * @param array $messages
-     * @param string $stageIdentifier For logging
-     * @return string The content from the response
-     * @throws LocalizedException
-     */
-    private function callOpenRouterApi(string $apiKey, string $model, array $messages, string $stageIdentifier): string
-    {
-        $payload = [
-            'model' => $model,
-            'messages' => $messages
-        ];
-
-        try {
-             $this->logger->debug("OpenRouter Request [$stageIdentifier] Payload: " . $this->jsonSerializer->serialize($payload));
-             $ch = curl_init();
-             curl_setopt($ch, CURLOPT_URL, self::OPENROUTER_API_ENDPOINT);
-             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $this->jsonSerializer->serialize($payload));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $apiKey,
-            ]);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 300);
-
-            $responseBody = curl_exec($ch);
-            $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
-            curl_close($ch);
-
-            $this->logger->debug("OpenRouter Response [$stageIdentifier] Status: " . $statusCode);
-            $this->logger->debug("OpenRouter Response [$stageIdentifier] Body: " . trim($responseBody));
-
-            if ($curlError) {
-                throw new LocalizedException(__("cURL Error calling OpenRouter API [$stageIdentifier]: %1", $curlError));
-            }
-
-            if ($statusCode !== 200) {
-                $errorDetails = $responseBody;
-                try {
-                    $decodedError = $this->jsonSerializer->unserialize($responseBody);
-                    if (isset($decodedError['error']['message'])) {
-                        $errorDetails = $decodedError['error']['message'];
-                    }
-                } catch (\Exception $e) { /* Ignore unserialize errors */ }
-                throw new LocalizedException(__("Error communicating with OpenRouter API [$stageIdentifier]: Status %1 - %2", $statusCode, $errorDetails));
-            }
-
-            $responseData = $this->jsonSerializer->unserialize($responseBody);
-
-            if (isset($responseData['error']['message'])) {
-                $providerErrorMessage = $responseData['error']['message'];
-                $this->logger->error("OpenRouter returned an error in the response body [$stageIdentifier].", ['error' => $responseData['error']]);
-                throw new LocalizedException(__("AI Service Error [$stageIdentifier]: %1", $providerErrorMessage));
-            }
-
-            $content = $responseData['choices'][0]['message']['content'] ?? null;
-
-            if ($content === null) {
-                $this->logger->error("Could not extract content from OpenRouter response [$stageIdentifier].", ['response' => $responseData]);
-                throw new LocalizedException(__("OpenRouter API returned an unexpected response format or empty content [$stageIdentifier]."));
-            }
-
-            return trim($content);
-
-        } catch (LocalizedException $e) {
-            $this->logger->error("OpenRouter API Error [$stageIdentifier]: " . $e->getMessage());
-            throw $e;
-        } catch (\Exception $e) {
-            $this->logger->critical("Error calling OpenRouter API [$stageIdentifier]: " . $e->getMessage(), ['exception' => $e]);
-            throw new LocalizedException(__("An unexpected error occurred while calling the AI service [$stageIdentifier]: %1", $e->getMessage()));
-        }
-    }
-
-    /**
      * Get the configured API key for a specific store scope.
      *
      * @param int $storeId
@@ -538,8 +413,4 @@ class AiGenerator
             $storeId
         ) ?: self::DEFAULT_RENDERING_MODEL;
     }
-
-    // Removed getBasePrompt method
-    // Removed getPromptFromFile method
-    // Removed getTailwindConfig method
  }

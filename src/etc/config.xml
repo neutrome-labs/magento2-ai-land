@@ -27,6 +27,28 @@
 2.  **Layout Structure:** Briefly describe the intended layout for major sections (e.g., "Main Content: Product grid (specify columns for desktop/tablet/mobile)", "Sidebar: Vertical list for filters", "Pagination: Centered below grid"). Mention responsiveness considerations.
 3.  **Interactive Elements:** Specify any necessary interactive components (e.g., "Clickable product items", "Checkboxes/radio buttons/sliders for filters", "Dropdown for sorting", "Pagination links/buttons").
 4.  **Adherence:** Strictly follow all instructions provided in the `User Directions/Constraints`.]]></category_base_prompt>
+                <generic_base_prompt><![CDATA[Generate a complete, interactive landing page section. Make the page visually appealing and persuasive based on the user's request and context.]]></generic_base_prompt>
+                <product_interactive_prompt><![CDATA[Create an interactive product page experience that dynamically loads product information through GraphQL. Focus on:
+- Interactive product galleries with zoom/swipe
+- Dynamic price updates based on options
+- Add to cart functionality
+- Product customization interface
+- Related products carousel
+Use Magento GraphQL queries for all dynamic data loading.]]></product_interactive_prompt>
+                <category_interactive_prompt><![CDATA[Design an interactive category browsing experience using dynamic GraphQL loading. Include:
+- Filterable/sortable product grid
+- Lazy loading of products
+- Quick view functionality
+- Category description with expandable sections
+- Visual filtering options
+All product data should be loaded dynamically through GraphQL endpoints.]]></category_interactive_prompt>
+                <generic_interactive_prompt><![CDATA[Create interactive content focused on engaging user experiences. Include:
+- Dynamic content loading sections
+- Interactive UI elements
+- Personalized content recommendations
+- Smooth transitions/animations
+- Form handling with validation
+Ensure all dynamic functionality uses Magento's GraphQL API for data fetching.]]></generic_interactive_prompt>
             </openrouter>
         </ailand>
     </default>

@@ -90,7 +90,7 @@ class DesignGenerator
         $stageIdentifier = 'Stage 1 (Design)'; // Define for logging in helpers
 
         // Use PromptService to get prompts
-        $designUserPrompt = $this->buildDesignUserPrompt($customPrompt, $contextData, $dataSourceType, $storeId); // Keep internal build method for now
+        $designUserPrompt = $this->buildDesignUserPrompt($customPrompt, $contextData, $dataSourceType, $storeId, $generateInteractive); // Keep internal build method for now
         $designSystemPrompt = $this->promptService->getPromptFromFile('design_system_prompt.txt'); // Use PromptService
         if (!$designSystemPrompt) {
             throw new LocalizedException(__('Could not load design system prompt via PromptService.'));
@@ -106,44 +106,9 @@ class DesignGenerator
             $designMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
         }
 
-        // Conditionally add instruction to use GraphQL
-        if ($generateInteractive) {
-            $designMessages[] = [
-                'role' => 'user',
-                'content' => "IMPORTANT IMPLEMENTATION NOTE: When generating the HTML and JavaScript, DO NOT hardcode dynamic data (like product names, prices, descriptions, category lists, etc.) or actions (like add to cart). Instead, implement the necessary logic using Magento 2's GraphQL API. Assume the GraphQL endpoint is available at '/graphql'. Use appropriate queries and mutations for data fetching and actions."
-            ];
-            $this->logger->info('Adding GraphQL instruction for interactive page generation (Design Stage).');
-        } else {
-             $this->logger->info('Skipping GraphQL instruction for static page generation (Design Stage).');
-        }
-
         // Add the final user prompt (goal + custom instructions)
         $designMessages[] = ['role' => 'user', 'content' => $designUserPrompt];
-
-        // Add Image URL to the messages if provided
-        if ($referenceImageUrl && !empty(trim($referenceImageUrl))) {
-             // OpenRouter expects multimodal content in a specific format within the 'content' array
-             // We modify the last user message to include the image.
-             $lastMessageIndex = count($designMessages) - 1;
-             if ($designMessages[$lastMessageIndex]['role'] === 'user') {
-                 $originalText = $designMessages[$lastMessageIndex]['content'];
-                 $designMessages[$lastMessageIndex]['content'] = [
-                     ['type' => 'text', 'text' => $originalText],
-                     ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
-                 ];
-                 $this->logger->info('Added reference image to Design stage request.', ['url' => trim($referenceImageUrl)]);
-             } else {
-                 // Fallback: Add as a new message if the last wasn't a user message (shouldn't happen here)
-                 $designMessages[] = [
-                     'role' => 'user',
-                     'content' => [
-                         ['type' => 'text', 'text' => 'Reference Image:'],
-                         ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
-                     ]
-                 ];
-                 $this->logger->warning('Added reference image as a separate message in Design stage.');
-             }
-        }
+        $this->promptService->addReferenceImageToMessages($designMessages, $referenceImageUrl, $stageIdentifier);
 
         $technicalDesign = $this->apiClient->callOpenRouterApi($apiKey, $thinkingModel, $designMessages, 'Stage 1 (Design)');
         $this->logger->info('Completed AI Generation Stage 1.');
@@ -160,11 +125,11 @@ class DesignGenerator
      * @param int $storeId
      * @return string
      */
-    private function buildDesignUserPrompt(string $customPrompt, array $contextData, ?string $dataSourceType, int $storeId): string
+    private function buildDesignUserPrompt(string $customPrompt, array $contextData, ?string $dataSourceType, int $storeId, bool $generateInteractive = false): string
     {
         $basePromptType = !empty($contextData['data_source_context']) ? $dataSourceType : null;
         // Use PromptService to get base prompt
-        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId); // Use PromptService
+        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive); // Use PromptService
 
         $userInstructionPrompt = "Content Goal: " . $contentGoal . "\n";
 
