@@ -33,7 +33,8 @@ class NewAction extends Action implements HttpGetActionInterface
      */
     public function __construct(
         Context $context
-    ) {
+    )
+    {
         parent::__construct($context);
     }
 

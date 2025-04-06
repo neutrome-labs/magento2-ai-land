@@ -8,7 +8,8 @@
  * @author      Cline (AI Assistant)
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
     <system>
         <!-- Tab definition -->
         <tab id="neutromelabs" translate="label" sortOrder="400">
@@ -16,36 +17,51 @@
         </tab>
 
         <!-- Section definition -->
-        <section id="ailand" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+        <section id="ailand" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1"
+                 showInStore="1">
             <label>AI Landings</label>
             <tab>neutromelabs</tab>
             <resource>NeutromeLabs_AiLand::config</resource> <!-- ACL Resource -->
-            <group id="openrouter" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0"> <!-- Changed group ID and label -->
+            <group id="openrouter" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0"
+                   showInStore="0"> <!-- Changed group ID and label -->
                 <label>OpenRouter API</label>
-                <field id="api_key" translate="label comment" type="obscure" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="api_key" translate="label comment" type="obscure" sortOrder="10" showInDefault="1"
+                       showInWebsite="0" showInStore="0">
                     <label>API Key</label>
                     <comment>Enter your OpenRouter API Key. Get one from openrouter.ai</comment>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                     <validate>required-entry</validate>
                 </field>
                 <!-- Removed original 'model' field -->
-                <field id="thinking_model" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
+                <field id="thinking_model" translate="label comment" type="text" sortOrder="20" showInDefault="1"
+                       showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
                     <label>Thinking Model</label>
-                    <comment>Model used for generating the technical design plan (Stage 1). Default: 'deepseek/deepseek-r1:free'.</comment>
+                    <comment>Model used for generating the technical design plan (Stage 1). Default:
+                        'deepseek/deepseek-r1:free'.
+                    </comment>
                     <validate>required-entry</validate>
                 </field>
-                <field id="rendering_model" translate="label comment" type="text" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
+                <field id="rendering_model" translate="label comment" type="text" sortOrder="25" showInDefault="1"
+                       showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
                     <label>Rendering Model</label>
-                    <comment>Model used for generating HTML from the design plan (Stage 2) and for improvements. Default: 'deepseek/deepseek-chat-v3-0324:free'.</comment>
+                    <comment>Model used for generating HTML from the design plan (Stage 2) and for improvements.
+                        Default: 'deepseek/deepseek-chat-v3-0324:free'.
+                    </comment>
                     <validate>required-entry</validate>
                 </field>
-                 <field id="product_base_prompt" translate="label comment" type="textarea" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
+                <field id="product_base_prompt" translate="label comment" type="textarea" sortOrder="30"
+                       showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
                     <label>Product Base Prompt</label>
-                    <comment>The base system instruction sent to the AI when generating from a product. Context data is provided separately.</comment>
+                    <comment>The base system instruction sent to the AI when generating from a product. Context data is
+                        provided separately.
+                    </comment>
                 </field>
-                 <field id="category_base_prompt" translate="label comment" type="textarea" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
+                <field id="category_base_prompt" translate="label comment" type="textarea" sortOrder="40"
+                       showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
                     <label>Category Base Prompt</label>
-                    <comment>The base system instruction sent to the AI when generating from a category. Context data is provided separately.</comment>
+                    <comment>The base system instruction sent to the AI when generating from a category. Context data is
+                        provided separately.
+                    </comment>
                 </field>
             </group>
         </section>

@@ -14,10 +14,9 @@ namespace NeutromeLabs\AiLand\Model;
 
 // Corrected Use Statements based on previous successful step
 use Magento\Framework\Exception\LocalizedException;
-use Psr\Log\LoggerInterface;
-use NeutromeLabs\AiLand\Model\ApiClient;
 use NeutromeLabs\AiLand\Model\Service\PromptService;
 use NeutromeLabs\AiLand\Model\Service\ThemeService;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service class responsible for generating/improving HTML content using AI.
@@ -53,11 +52,12 @@ class HtmlGenerator
      * @param ThemeService $themeService
      */
     public function __construct(
-        ApiClient $apiClient,
+        ApiClient       $apiClient,
         LoggerInterface $logger,
-        PromptService $promptService,
-        ThemeService $themeService
-    ) {
+        PromptService   $promptService,
+        ThemeService    $themeService
+    )
+    {
         $this->apiClient = $apiClient;
         $this->logger = $logger;
         $this->promptService = $promptService;
@@ -78,14 +78,15 @@ class HtmlGenerator
      * @throws LocalizedException
      */
     public function generateHtmlFromDesign(
-        string $apiKey,
-        string $renderingModel,
-        string $technicalDesign,
-        array $contextData,
-        int $storeId,
+        string  $apiKey,
+        string  $renderingModel,
+        string  $technicalDesign,
+        array   $contextData,
+        int     $storeId,
         ?string $referenceImageUrl,
-        bool $generateInteractive
-    ): string {
+        bool    $generateInteractive
+    ): string
+    {
         $this->logger->info('Starting AI Generation Stage 2: HTML Generation', ['store_id' => $storeId]);
         $stageIdentifier = 'Stage 2 (HTML)'; // Define for logging
 
@@ -105,7 +106,7 @@ class HtmlGenerator
         if (!empty($contextData['data_source_context'])) {
             $htmlMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
         }
-        
+
         // Add base prompt content goal
         $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
         $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
@@ -140,15 +141,16 @@ class HtmlGenerator
      * @throws LocalizedException
      */
     public function improveHtml(
-        string $apiKey,
-        string $renderingModel,
-        string $customPrompt,
+        string  $apiKey,
+        string  $renderingModel,
+        string  $customPrompt,
         ?string $currentContent,
-        array $contextData,
-        int $storeId,
+        array   $contextData,
+        int     $storeId,
         ?string $referenceImageUrl,
-        bool $generateInteractive
-    ): string {
+        bool    $generateInteractive
+    ): string
+    {
         $this->logger->info('Performing standard HTML improvement.', ['store_id' => $storeId]);
         $stageIdentifier = 'Improve Stage'; // Define for logging
 
@@ -180,7 +182,7 @@ class HtmlGenerator
         $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
         $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
         $improveMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
-        
+
         $improveMessages[] = ['role' => 'user', 'content' => "User's Improvement Request:\n" . $customPrompt];
 
         // Use PromptService to add reference image
@@ -208,15 +210,16 @@ class HtmlGenerator
      * @throws LocalizedException
      */
     public function retryHtmlFromDesign(
-        string $apiKey,
-        string $renderingModel,
-        string $designPlan,
-        string $customPrompt,
-        array $contextData,
-        int $storeId,
+        string  $apiKey,
+        string  $renderingModel,
+        string  $designPlan,
+        string  $customPrompt,
+        array   $contextData,
+        int     $storeId,
         ?string $referenceImageUrl,
-        bool $generateInteractive
-    ): string {
+        bool    $generateInteractive
+    ): string
+    {
         $this->logger->info('Retrying Stage 2 HTML generation using existing design plan.', ['store_id' => $storeId]);
         $stageIdentifier = 'Retry Stage 2 (HTML)'; // Define for logging
 
@@ -250,9 +253,9 @@ class HtmlGenerator
         $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
         $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
         $retryHtmlMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
-        
+
         if (!empty($customPrompt)) {
-           $retryHtmlMessages[] = ['role' => 'user', 'content' => "Additional User Instructions for this attempt:\n" . $customPrompt];
+            $retryHtmlMessages[] = ['role' => 'user', 'content' => "Additional User Instructions for this attempt:\n" . $customPrompt];
         }
 
         // Use PromptService to add reference image

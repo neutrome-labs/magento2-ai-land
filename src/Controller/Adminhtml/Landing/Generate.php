@@ -10,13 +10,15 @@ declare(strict_types=1);
 
 namespace NeutromeLabs\AiLand\Controller\Adminhtml\Landing;
 
+use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Controller\Result\Json;
+use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use NeutromeLabs\AiLand\Model\AiGenerator;
+use Psr\Log\LoggerInterface;
 
 /**
  * Controller to handle AJAX requests for generating AI content.
@@ -45,10 +47,11 @@ class Generate extends Action implements HttpPostActionInterface
      * @param AiGenerator $aiGenerator
      */
     public function __construct(
-        Context $context,
+        Context     $context,
         JsonFactory $resultJsonFactory,
         AiGenerator $aiGenerator
-    ) {
+    )
+    {
         parent::__construct($context);
         $this->resultJsonFactory = $resultJsonFactory;
         $this->aiGenerator = $aiGenerator;
@@ -65,8 +68,8 @@ class Generate extends Action implements HttpPostActionInterface
         $response = ['success' => false, 'message' => __('An error occurred.')];
 
         if (!$this->getRequest()->isPost() || !$this->getRequest()->isAjax()) {
-             $response['message'] = __('Invalid request type.');
-             return $result->setData($response);
+            $response['message'] = __('Invalid request type.');
+            return $result->setData($response);
         }
 
         try {
@@ -84,7 +87,7 @@ class Generate extends Action implements HttpPostActionInterface
 
             // Validate store_id - it's now required by the generator
             if (empty($storeId) || !is_numeric($storeId) || (int)$storeId <= 0) {
-                 throw new LocalizedException(__('A valid Store View must be selected.'));
+                throw new LocalizedException(__('A valid Store View must be selected.'));
             }
             $storeId = (int)$storeId; // Cast to integer
 
@@ -98,7 +101,7 @@ class Generate extends Action implements HttpPostActionInterface
                 }
                 $sourceId = $productId;
             } elseif ($dataSourceType === 'category') {
-                 if (empty($categoryId)) {
+                if (empty($categoryId)) {
                     throw new LocalizedException(__('Category ID is required when Category is selected as the data source.'));
                 }
                 $sourceId = $categoryId;
@@ -127,10 +130,10 @@ class Generate extends Action implements HttpPostActionInterface
 
         } catch (LocalizedException $e) {
             $response['message'] = $e->getMessage();
-            $this->_objectManager->get(\Psr\Log\LoggerInterface::class)->error($e->getMessage());
-        } catch (\Exception $e) {
+            $this->_objectManager->get(LoggerInterface::class)->error($e->getMessage());
+        } catch (Exception $e) {
             $response['message'] = __('An unexpected error occurred while generating content.');
-             $this->_objectManager->get(\Psr\Log\LoggerInterface::class)->critical($e);
+            $this->_objectManager->get(LoggerInterface::class)->critical($e);
         }
 
         return $result->setData($response);

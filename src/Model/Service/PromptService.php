@@ -13,11 +13,12 @@ declare(strict_types=1);
 namespace NeutromeLabs\AiLand\Model\Service;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\FileSystemException;
-use Magento\Framework\Module\Dir\Reader as ModuleDirReader;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filesystem\Driver\File as FileDriver;
+use Magento\Framework\Module\Dir;
+use Magento\Framework\Module\Dir\Reader as ModuleDirReader;
+use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -63,11 +64,12 @@ class PromptService
      * @param LoggerInterface $logger
      */
     public function __construct(
-        ModuleDirReader $moduleDirReader,
-        FileDriver $fileDriver,
+        ModuleDirReader      $moduleDirReader,
+        FileDriver           $fileDriver,
         ScopeConfigInterface $scopeConfig,
-        LoggerInterface $logger
-    ) {
+        LoggerInterface      $logger
+    )
+    {
         $this->moduleDirReader = $moduleDirReader;
         $this->fileDriver = $fileDriver;
         $this->scopeConfig = $scopeConfig;
@@ -84,9 +86,9 @@ class PromptService
     {
         try {
             $promptDir = $this->moduleDirReader->getModuleDir(
-                \Magento\Framework\Module\Dir::MODULE_ETC_DIR,
-                self::MODULE_NAME
-            ) . '/prompts';
+                    Dir::MODULE_ETC_DIR,
+                    self::MODULE_NAME
+                ) . '/prompts';
             $filePath = $promptDir . '/' . $filename;
 
             if ($this->fileDriver->isExists($filePath) && $this->fileDriver->isReadable($filePath)) {
@@ -94,11 +96,11 @@ class PromptService
             } else {
                 $this->logger->warning('Prompt file not found or not readable: ' . $filePath);
             }
-        } catch (FileSystemException | LocalizedException $e) {
+        } catch (FileSystemException|LocalizedException $e) {
             $this->logger->error('Error reading prompt file: ' . $filename . ' - ' . $e->getMessage());
-         }
-         return '';
-     }
+        }
+        return '';
+    }
 
     /**
      * Get the CONTENT-focused base prompt instruction based on data source type.
@@ -151,25 +153,25 @@ class PromptService
 
             // Try to append to the last user message for better context
             if ($lastMessageIndex >= 0 && $messages[$lastMessageIndex]['role'] === 'user') {
-                 // Ensure the existing content is treated as text
-                 $originalContent = $messages[$lastMessageIndex]['content'];
-                 if (is_string($originalContent)) {
-                     $textContent = $originalContent;
-                     $newContent = [['type' => 'text', 'text' => $textContent]];
-                 } elseif (is_array($originalContent) && isset($originalContent[0]['type']) && $originalContent[0]['type'] === 'text') {
-                     // Already in multimodal format, just append image
-                     $newContent = $originalContent;
-                 } else {
-                     // Unexpected format, log warning and create basic text part
-                     $this->logger->warning('Unexpected content format in last user message for image addition.', ['stage' => $stageIdentifier]);
-                     $newContent = [['type' => 'text', 'text' => '(Previous content)']];
-                 }
+                // Ensure the existing content is treated as text
+                $originalContent = $messages[$lastMessageIndex]['content'];
+                if (is_string($originalContent)) {
+                    $textContent = $originalContent;
+                    $newContent = [['type' => 'text', 'text' => $textContent]];
+                } elseif (is_array($originalContent) && isset($originalContent[0]['type']) && $originalContent[0]['type'] === 'text') {
+                    // Already in multimodal format, just append image
+                    $newContent = $originalContent;
+                } else {
+                    // Unexpected format, log warning and create basic text part
+                    $this->logger->warning('Unexpected content format in last user message for image addition.', ['stage' => $stageIdentifier]);
+                    $newContent = [['type' => 'text', 'text' => '(Previous content)']];
+                }
 
-                 // Add the image part
-                 $newContent[] = ['type' => 'image_url', 'image_url' => ['url' => $trimmedUrl]];
-                 $messages[$lastMessageIndex]['content'] = $newContent;
+                // Add the image part
+                $newContent[] = ['type' => 'image_url', 'image_url' => ['url' => $trimmedUrl]];
+                $messages[$lastMessageIndex]['content'] = $newContent;
 
-                 $this->logger->info('Added reference image to last user message.', ['stage' => $stageIdentifier, 'url' => $trimmedUrl]);
+                $this->logger->info('Added reference image to last user message.', ['stage' => $stageIdentifier, 'url' => $trimmedUrl]);
 
             } else {
                 // Fallback: Add as a new user message if the last wasn't 'user' or array is empty

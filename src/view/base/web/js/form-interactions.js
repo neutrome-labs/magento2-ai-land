@@ -15,8 +15,8 @@ define([
         var $productIdContainer = $(config.productIdFieldContainer);
         var $categoryIdContainer = $(config.categoryIdFieldContainer);
         // Use class selectors now
-        var generateButtonClass = config.generateButtonClass; 
-        var improveButtonClass = config.improveButtonClass; 
+        var generateButtonClass = config.generateButtonClass;
+        var improveButtonClass = config.improveButtonClass;
         var $designPlanArea = $(config.designPlanArea);
         var $previewIframe = $(config.previewIframe);
         var $hiddenContentArea = $(config.previewArea);
@@ -28,15 +28,15 @@ define([
         $form.mage('validation', {
             errorPlacement: function (error, element) {
                 // Default Magento error placement logic (can be customized)
-                 var errorPlacementParent = element.parents('.admin__field');
-                 if (errorPlacementParent.length) {
+                var errorPlacementParent = element.parents('.admin__field');
+                if (errorPlacementParent.length) {
                     errorPlacementParent.addClass('admin__field-error');
                     error.appendTo(errorPlacementParent.find('.admin__field-control'));
-                 } else {
+                } else {
                     error.insertAfter(element);
-                 }
+                }
             },
-            unhighlight: function(element) {
+            unhighlight: function (element) {
                 // Default Magento unhighlight logic
                 $(element).parent().removeClass('admin__field-error');
             }
@@ -86,7 +86,7 @@ define([
             var originalButtonTexts = {}; // Store original text for each button
 
             // Disable buttons and show loading state
-            $buttonsToDisable.each(function() {
+            $buttonsToDisable.each(function () {
                 var $btn = $(this);
                 originalButtonTexts[$btn.attr('id') || $btn.index()] = $btn.find('span').text(); // Store original text
                 $btn.prop('disabled', true).addClass('disabled').find('span').text(loadingText);
@@ -121,20 +121,20 @@ define([
                         iframeDoc.close();
                     } else {
                         var errorMessage = response.message || $t('An unknown error occurred during generation.');
-                        alert({ title: $t('Generation Error'), content: errorMessage });
+                        alert({title: $t('Generation Error'), content: errorMessage});
                         $previewIframe.contents().find('body').html($t('Generation failed:') + '<br>' + errorMessage);
                         $hiddenContentArea.val(''); // Clear hidden content on error
                     }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     var errorMsg = $t('Could not connect to the generation service. Status: ') + textStatus + ', Error: ' + errorThrown;
-                     alert({ title: $t('AJAX Error'), content: errorMsg });
-                     $previewIframe.contents().find('body').html($t('Generation failed. Could not connect.'));
-                     $hiddenContentArea.val(''); // Clear hidden content on error
+                    alert({title: $t('AJAX Error'), content: errorMsg});
+                    $previewIframe.contents().find('body').html($t('Generation failed. Could not connect.'));
+                    $hiddenContentArea.val(''); // Clear hidden content on error
                 },
                 complete: function () {
                     // Re-enable buttons and restore text
-                    $buttonsToDisable.each(function() {
+                    $buttonsToDisable.each(function () {
                         var $btn = $(this);
                         var originalText = originalButtonTexts[$btn.attr('id') || $btn.index()];
                         $btn.prop('disabled', false).removeClass('disabled').find('span').text(originalText);
@@ -151,11 +151,11 @@ define([
         // Event listeners using delegation from the form element
         $form.on('change', config.dataSourceTypeSelector, toggleSourceFields);
         // Use class selectors for button clicks
-        $form.on('click', generateButtonClass, function(e) {
+        $form.on('click', generateButtonClass, function (e) {
             e.preventDefault(); // Prevent default if it's somehow not a button type
             processRequest('generate');
         });
-        $form.on('click', improveButtonClass, function(e) {
+        $form.on('click', improveButtonClass, function (e) {
             e.preventDefault();
             processRequest('improve');
         });

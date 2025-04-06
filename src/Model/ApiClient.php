@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace NeutromeLabs\AiLand\Model;
 
+use Exception;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\HTTP\Client\Curl;
 use Magento\Framework\Serialize\Serializer\Json as JsonSerializer;
@@ -47,10 +48,11 @@ class ApiClient
      * @param LoggerInterface $logger
      */
     public function __construct(
-        Curl $httpClient,
-        JsonSerializer $jsonSerializer,
+        Curl            $httpClient,
+        JsonSerializer  $jsonSerializer,
         LoggerInterface $logger
-    ) {
+    )
+    {
         $this->httpClient = $httpClient;
         $this->jsonSerializer = $jsonSerializer;
         $this->logger = $logger;
@@ -106,7 +108,8 @@ class ApiClient
                     if (isset($decodedError['error']['message'])) {
                         $errorDetails = $decodedError['error']['message'];
                     }
-                } catch (\Exception $e) { /* Ignore unserialize errors */ }
+                } catch (Exception $e) { /* Ignore unserialize errors */
+                }
                 throw new LocalizedException(__("Error communicating with OpenRouter API [$stageIdentifier]: Status %1 - %2", $statusCode, $errorDetails));
             }
 
@@ -130,7 +133,7 @@ class ApiClient
         } catch (LocalizedException $e) {
             $this->logger->error("OpenRouter API Error [$stageIdentifier]: " . $e->getMessage());
             throw $e;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->critical("Error calling OpenRouter API [$stageIdentifier]: " . $e->getMessage(), ['exception' => $e]);
             throw new LocalizedException(__("An unexpected error occurred while calling the AI service [$stageIdentifier]: %1", $e->getMessage()));
         }

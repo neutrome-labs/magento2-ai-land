@@ -8,7 +8,8 @@
  * @author      Cline (AI Assistant)
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <ailand>
             <openrouter> <!-- Changed group ID -->
@@ -27,7 +28,8 @@
 2.  **Layout Structure:** Briefly describe the intended layout for major sections (e.g., "Main Content: Product grid (specify columns for desktop/tablet/mobile)", "Sidebar: Vertical list for filters", "Pagination: Centered below grid"). Mention responsiveness considerations.
 3.  **Interactive Elements:** Specify any necessary interactive components (e.g., "Clickable product items", "Checkboxes/radio buttons/sliders for filters", "Dropdown for sorting", "Pagination links/buttons").
 4.  **Adherence:** Strictly follow all instructions provided in the `User Directions/Constraints`.]]></category_base_prompt>
-                <generic_base_prompt><![CDATA[Generate a complete, interactive landing page section. Make the page visually appealing and persuasive based on the user's request and context.]]></generic_base_prompt>
+                <generic_base_prompt>
+                    <![CDATA[Generate a complete, interactive landing page section. Make the page visually appealing and persuasive based on the user's request and context.]]></generic_base_prompt>
                 <product_interactive_prompt><![CDATA[Create an interactive product page experience that dynamically loads product information through GraphQL. Focus on:
 - Interactive product galleries with zoom/swipe
 - Dynamic price updates based on options

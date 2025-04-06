@@ -2,11 +2,14 @@
 /**
  * NeutromeLabs AiLand PHTML Form Template
  *
- * @var \Magento\Backend\Block\Template $block
+ * @var Template $block
  */
 
 // You can add necessary block dependencies via layout XML if needed later
 // For example, to get form URLs, config values etc.
+use Magento\Backend\Block\Template;
+use NeutromeLabs\AiLand\Block\Adminhtml\Form\Field\StoreSelector;
+
 $generateUrl = $block->getUrl('ailand/landing/generate'); // URL for AJAX generation
 $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submission
 
@@ -26,16 +29,20 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
 
         <div class="admin__fieldset">
             <div class="admin__field _required">
-                <label class="admin__field-label" for="title"><span><?= $block->escapeHtml(__('CMS Block Title')) ?></span></label>
+                <label class="admin__field-label"
+                       for="title"><span><?= $block->escapeHtml(__('CMS Block Title')) ?></span></label>
                 <div class="admin__field-control">
-                    <input id="title" name="title" type="text" class="admin__control-text" value="" data-validate="{required:true}"/>
+                    <input id="title" name="title" type="text" class="admin__control-text" value=""
+                           data-validate="{required:true}"/>
                 </div>
             </div>
 
             <div class="admin__field _required">
-                <label class="admin__field-label" for="identifier"><span><?= $block->escapeHtml(__('CMS Block Identifier')) ?></span></label>
+                <label class="admin__field-label"
+                       for="identifier"><span><?= $block->escapeHtml(__('CMS Block Identifier')) ?></span></label>
                 <div class="admin__field-control">
-                    <input id="identifier" name="identifier" type="text" class="admin__control-text" value="" data-validate="{required:true, 'validate-identifier':true}"/>
+                    <input id="identifier" name="identifier" type="text" class="admin__control-text" value=""
+                           data-validate="{required:true, 'validate-identifier':true}"/>
                     <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('Use lowercase letters, numbers, and underscores. Example: my_ai_landing_page')) ?></span>
                     </div>
@@ -44,86 +51,98 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
 
             <!-- Custom Store Selector Field -->
             <div class="admin__field _required"> <!-- Making it required as generator needs it -->
-                <label class="admin__field-label" for="store_id"><span><?= $block->escapeHtml(__('Store View')) ?></span></label>
+                <label class="admin__field-label"
+                       for="store_id"><span><?= $block->escapeHtml(__('Store View')) ?></span></label>
                 <div class="admin__field-control">
                     <?php
-                        // Instantiate and render the custom block directly
-                        // Note: Ideally, this block would be added via layout XML for better practice,
-                        // but direct instantiation is simpler for this modification.
-                        $storeSelectorBlock = $block->getLayout()->createBlock(
-                            \NeutromeLabs\AiLand\Block\Adminhtml\Form\Field\StoreSelector::class
-                        );
-                        echo $storeSelectorBlock
-                            ->setName('store_id') // Set the name attribute for form submission
-                            ->setId('store_id')   // Set the ID attribute for JS targeting
-                            ->setClass('admin__control-select') // Standard Magento select class
-                            ->toHtml();
+                    // Instantiate and render the custom block directly
+                    // Note: Ideally, this block would be added via layout XML for better practice,
+                    // but direct instantiation is simpler for this modification.
+                    $storeSelectorBlock = $block->getLayout()->createBlock(
+                        StoreSelector::class
+                    );
+                    echo $storeSelectorBlock
+                        ->setName('store_id') // Set the name attribute for form submission
+                        ->setId('store_id')   // Set the ID attribute for JS targeting
+                        ->setClass('admin__control-select') // Standard Magento select class
+                        ->toHtml();
                     ?>
-                     <div class="admin__field-note">
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('Select the Store View context for generation.')) ?></span>
                     </div>
                 </div>
             </div>
 
             <div class="admin__field">
-                <label class="admin__field-label" for="custom_prompt"><span><?= $block->escapeHtml(__('Custom Prompt')) ?></span></label>
+                <label class="admin__field-label"
+                       for="custom_prompt"><span><?= $block->escapeHtml(__('Custom Prompt')) ?></span></label>
                 <div class="admin__field-control">
-                    <textarea id="custom_prompt" name="custom_prompt" class="admin__control-textarea" rows="8"></textarea>
-                     <div class="admin__field-note">
+                    <textarea id="custom_prompt" name="custom_prompt" class="admin__control-textarea"
+                              rows="8"></textarea>
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('Enter the detailed prompt for the AI. Optionally select a Product or Category below for additional context.')) ?></span>
                     </div>
                 </div>
             </div>
 
             <div class="admin__field">
-                <label class="admin__field-label" for="reference_image_url"><span><?= $block->escapeHtml(__('Reference Image URL')) ?></span></label>
+                <label class="admin__field-label"
+                       for="reference_image_url"><span><?= $block->escapeHtml(__('Reference Image URL')) ?></span></label>
                 <div class="admin__field-control">
-                    <input id="reference_image_url" name="reference_image_url" type="url" class="admin__control-text" value=""/>
-                     <div class="admin__field-note">
+                    <input id="reference_image_url" name="reference_image_url" type="url" class="admin__control-text"
+                           value=""/>
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('(Optional) Provide a URL to an image for visual reference.')) ?></span>
                     </div>
                 </div>
             </div>
 
             <div class="admin__field">
-                <label class="admin__field-label" for="generate_interactive"><span><?= $block->escapeHtml(__('Generate Interactive Page')) ?></span></label>
+                <label class="admin__field-label"
+                       for="generate_interactive"><span><?= $block->escapeHtml(__('Generate Interactive Page')) ?></span></label>
                 <div class="admin__field-control">
-                    <input id="generate_interactive" name="generate_interactive" type="checkbox" class="admin__control-checkbox" value="1"/>
-                    <label class="admin__field-label" for="generate_interactive"><span><?= $block->escapeHtml(__('Enable GraphQL Integration')) ?></span></label>
+                    <input id="generate_interactive" name="generate_interactive" type="checkbox"
+                           class="admin__control-checkbox" value="1"/>
+                    <label class="admin__field-label"
+                           for="generate_interactive"><span><?= $block->escapeHtml(__('Enable GraphQL Integration')) ?></span></label>
                     <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('If checked, the AI will be instructed to use Magento GraphQL for dynamic data and actions (e.g., product loading, add to cart). If unchecked, the AI will generate static content based on the prompt and context.')) ?></span>
                     </div>
                 </div>
             </div>
 
-             <div class="admin__field">
-                <label class="admin__field-label" for="data_source_type"><span><?= $block->escapeHtml(__('Data Source Type')) ?></span></label>
+            <div class="admin__field">
+                <label class="admin__field-label"
+                       for="data_source_type"><span><?= $block->escapeHtml(__('Data Source Type')) ?></span></label>
                 <div class="admin__field-control">
-                     <select id="data_source_type" name="data_source_type" class="admin__control-select" data-validate="{required:true}">
+                    <select id="data_source_type" name="data_source_type" class="admin__control-select"
+                            data-validate="{required:true}">
                         <option value="product"><?= $block->escapeHtml(__('Product')) ?></option>
                         <option value="category"><?= $block->escapeHtml(__('Category')) ?></option>
                     </select>
-                     <div class="admin__field-note">
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('Optionally select a Product or Category to provide additional context to the AI along with your prompt.')) ?></span>
                     </div>
                 </div>
             </div>
 
-             <div class="admin__field" id="product_id_field" style="display: none;"> <!-- Initially hidden -->
-                <label class="admin__field-label" for="product_id"><span><?= $block->escapeHtml(__('Product ID')) ?></span></label>
+            <div class="admin__field" id="product_id_field" style="display: none;"> <!-- Initially hidden -->
+                <label class="admin__field-label"
+                       for="product_id"><span><?= $block->escapeHtml(__('Product ID')) ?></span></label>
                 <div class="admin__field-control">
                     <input id="product_id" name="product_id" type="text" class="admin__control-text" value=""/>
-                     <div class="admin__field-note">
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('Enter Product ID manually.')) ?></span>
                     </div>
                 </div>
             </div>
 
-             <div class="admin__field" id="category_id_field" style="display: none;"> <!-- Initially hidden -->
-                <label class="admin__field-label" for="category_id"><span><?= $block->escapeHtml(__('Category ID')) ?></span></label>
+            <div class="admin__field" id="category_id_field" style="display: none;"> <!-- Initially hidden -->
+                <label class="admin__field-label"
+                       for="category_id"><span><?= $block->escapeHtml(__('Category ID')) ?></span></label>
                 <div class="admin__field-control">
                     <input id="category_id" name="category_id" type="text" class="admin__control-text" value=""/>
-                     <div class="admin__field-note">
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('Enter Category ID manually.')) ?></span>
                     </div>
                 </div>
@@ -131,26 +150,31 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
         </div>
 
         <div class="admin__fieldset">
-            <legend class="admin__legend"><span><?= $block->escapeHtml(__('AI Generation Results')) ?></span></legend><br>
+            <legend class="admin__legend"><span><?= $block->escapeHtml(__('AI Generation Results')) ?></span></legend>
+            <br>
 
             <div class="admin__field">
-                <label class="admin__field-label" for="generated_design_plan"><span><?= $block->escapeHtml(__('Generated Design Plan (Stage 1)')) ?></span></label>
+                <label class="admin__field-label"
+                       for="generated_design_plan"><span><?= $block->escapeHtml(__('Generated Design Plan (Stage 1)')) ?></span></label>
                 <div class="admin__field-control">
-                    <textarea id="generated_design_plan" name="generated_design_plan" class="admin__control-textarea" rows="8" readonly="readonly"></textarea>
-                     <div class="admin__field-note">
+                    <textarea id="generated_design_plan" name="generated_design_plan" class="admin__control-textarea"
+                              rows="8" readonly="readonly"></textarea>
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('The technical design plan generated by the AI. This is used as input for Stage 2.')) ?></span>
                     </div>
                 </div>
             </div>
 
-             <div class="admin__field">
-                <label class="admin__field-label" for="generated_content_preview"><span><?= $block->escapeHtml(__('Generated HTML Preview (Stage 2)')) ?></span></label>
+            <div class="admin__field">
+                <label class="admin__field-label"
+                       for="generated_content_preview"><span><?= $block->escapeHtml(__('Generated HTML Preview (Stage 2)')) ?></span></label>
                 <div class="admin__field-control">
                     <!-- Iframe for rendering preview -->
-                    <iframe id="generated_content_preview" style="width: 100%; height: 800px; zoom: 0.7; resize: both; overflow: auto; border: 1px solid #ccc;"></iframe>
+                    <iframe id="generated_content_preview"
+                            style="width: 100%; height: 800px; zoom: 0.7; resize: both; overflow: auto; border: 1px solid #ccc;"></iframe>
                     <!-- Hidden textarea to hold the content for form submission -->
                     <textarea id="generated_content" name="generated_content" style="display: none;"></textarea>
-                     <div class="admin__field-note">
+                    <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('The AI-generated HTML content will be rendered above. Review before saving.')) ?></span>
                     </div>
                 </div>
@@ -160,7 +184,7 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
         <!-- Buttons at the bottom -->
         <div class="page-actions">
             <div class="page-actions-buttons">
-                 <?= $block->getChildHtml('generate_button') ?>
+                <?= $block->getChildHtml('generate_button') ?>
                 <?= $block->getChildHtml('improve_button') ?>
                 <?= $block->getChildHtml('save_button') ?>
             </div>
@@ -176,8 +200,8 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
                 "dataSourceTypeSelector": "#data_source_type",
                 "productIdFieldContainer": "#product_id_field",
                 "categoryIdFieldContainer": "#category_id_field",
-                "generateButtonClass": ".generate-ai-content-button", 
-                "improveButtonClass": ".improve-ai-content-button", 
+                "generateButtonClass": ".generate-ai-content-button",
+                "improveButtonClass": ".improve-ai-content-button",
                 "designPlanArea": "#generated_design_plan",
                 "previewArea": "#generated_content",
                 "previewIframe": "#generated_content_preview",

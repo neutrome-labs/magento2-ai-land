@@ -10,16 +10,19 @@ declare(strict_types=1);
 
 namespace NeutromeLabs\AiLand\Controller\Adminhtml\Landing;
 
+use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Cms\Api\BlockRepositoryInterface;
+use Magento\Cms\Api\Data\BlockInterfaceFactory;
+use Magento\Cms\Model\Block;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Cms\Api\BlockRepositoryInterface;
-use Magento\Cms\Api\Data\BlockInterfaceFactory;
-use Magento\Cms\Model\Block;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Controller to handle saving the generated content as a CMS Block.
@@ -61,12 +64,13 @@ class Save extends Action implements HttpPostActionInterface
      * @param StoreManagerInterface $storeManager
      */
     public function __construct(
-        Context $context,
-        DataPersistorInterface $dataPersistor,
+        Context                  $context,
+        DataPersistorInterface   $dataPersistor,
         BlockRepositoryInterface $blockRepository,
-        BlockInterfaceFactory $blockFactory,
-        StoreManagerInterface $storeManager
-    ) {
+        BlockInterfaceFactory    $blockFactory,
+        StoreManagerInterface    $storeManager
+    )
+    {
         parent::__construct($context);
         $this->dataPersistor = $dataPersistor;
         $this->blockRepository = $blockRepository;
@@ -95,9 +99,9 @@ class Save extends Action implements HttpPostActionInterface
 
             // Validate identifier format (basic example)
             if (!preg_match('/^[a-z0-9_]+$/', $data['identifier'])) {
-                 $this->messageManager->addErrorMessage(__('Identifier can only contain lowercase letters, numbers, and underscores.'));
-                 $this->dataPersistor->set('ailand_landing_form', $data);
-                 return $resultRedirect->setPath('*/*/new');
+                $this->messageManager->addErrorMessage(__('Identifier can only contain lowercase letters, numbers, and underscores.'));
+                $this->dataPersistor->set('ailand_landing_form', $data);
+                return $resultRedirect->setPath('*/*/new');
             }
 
             /** @var Block $model */
@@ -108,11 +112,11 @@ class Save extends Action implements HttpPostActionInterface
                 // Note: getById throws NoSuchEntityException if not found, which is not ideal here.
                 // A custom check might be better, but this works for a basic implementation.
                 try {
-                     $existingBlock = $this->blockRepository->getById($data['identifier']);
-                     if ($existingBlock->getId()) {
-                         throw new LocalizedException(__('A CMS Block with the identifier "%1" already exists.', $data['identifier']));
-                     }
-                } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                    $existingBlock = $this->blockRepository->getById($data['identifier']);
+                    if ($existingBlock->getId()) {
+                        throw new LocalizedException(__('A CMS Block with the identifier "%1" already exists.', $data['identifier']));
+                    }
+                } catch (NoSuchEntityException $e) {
                     // Identifier is unique, proceed
                 }
 
@@ -122,14 +126,14 @@ class Save extends Action implements HttpPostActionInterface
                 $model->setIsActive(true); // Activate by default
 
                 // Assign to all stores by default, or get from form if a store selector is added
-                 if (empty($data['store_id'])) {
+                if (empty($data['store_id'])) {
                     $stores = array_keys($this->storeManager->getStores());
                     if (!in_array(0, $stores)) {
                         array_unshift($stores, 0); // Add 'All Store Views'
                     }
                     $model->setStores($stores);
                 } else {
-                     $model->setStores($data['store_id']);
+                    $model->setStores($data['store_id']);
                 }
 
 
@@ -144,9 +148,9 @@ class Save extends Action implements HttpPostActionInterface
                 $this->messageManager->addErrorMessage($e->getMessage());
                 $this->dataPersistor->set('ailand_landing_form', $data);
                 return $resultRedirect->setPath('*/*/new'); // Redirect back to the form
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->messageManager->addExceptionMessage($e, __('Something went wrong while saving the CMS Block.'));
-                $this->_objectManager->get(\Psr\Log\LoggerInterface::class)->critical($e);
+                $this->_objectManager->get(LoggerInterface::class)->critical($e);
                 $this->dataPersistor->set('ailand_landing_form', $data);
                 return $resultRedirect->setPath('*/*/new'); // Redirect back to the form
             }

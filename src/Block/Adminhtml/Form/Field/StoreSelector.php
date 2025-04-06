@@ -10,9 +10,11 @@ declare(strict_types=1);
 
 namespace NeutromeLabs\AiLand\Block\Adminhtml\Form\Field;
 
-use Magento\Framework\View\Element\Html\Select;
 use Magento\Backend\Block\Template\Context;
-use Magento\Store\Model\System\Store as SystemStore; // Provides store options
+use Magento\Framework\View\Element\Html\Select;
+use Magento\Store\Model\System\Store as SystemStore;
+
+// Provides store options
 
 /**
  * Renders a custom dropdown for selecting a store view.
@@ -30,10 +32,11 @@ class StoreSelector extends Select
      * @param array $data
      */
     public function __construct(
-        Context $context,
+        Context     $context,
         SystemStore $systemStore,
-        array $data = []
-    ) {
+        array       $data = []
+    )
+    {
         parent::__construct($context, $data);
         $this->systemStore = $systemStore;
     }

@@ -13,10 +13,14 @@ declare(strict_types=1);
 namespace NeutromeLabs\AiLand\Model;
 
 use Magento\Framework\Exception\LocalizedException;
-// Removed: ScopeConfigInterface, ScopeInterface, FileSystemException, ModuleDirReader, FileDriver
+use NeutromeLabs\AiLand\Model\Service\PromptService;
 use Psr\Log\LoggerInterface;
-use NeutromeLabs\AiLand\Model\ApiClient; // Ensure ApiClient is used
-use NeutromeLabs\AiLand\Model\Service\PromptService; // Added
+
+// Removed: ScopeConfigInterface, ScopeInterface, FileSystemException, ModuleDirReader, FileDriver
+
+// Ensure ApiClient is used
+
+// Added
 
 /**
  * Service class responsible for generating the technical design using AI.
@@ -53,10 +57,11 @@ class DesignGenerator
      * @param PromptService $promptService // Added
      */
     public function __construct(
-        ApiClient $apiClient,
+        ApiClient       $apiClient,
         LoggerInterface $logger,
-        PromptService $promptService // Added
-    ) {
+        PromptService   $promptService // Added
+    )
+    {
         $this->apiClient = $apiClient;
         $this->logger = $logger;
         $this->promptService = $promptService; // Added
@@ -77,15 +82,16 @@ class DesignGenerator
      * @throws LocalizedException
      */
     public function generateDesign(
-        string $apiKey,
-        string $thinkingModel,
-        string $customPrompt,
-        array $contextData,
+        string  $apiKey,
+        string  $thinkingModel,
+        string  $customPrompt,
+        array   $contextData,
         ?string $dataSourceType,
-        int $storeId,
+        int     $storeId,
         ?string $referenceImageUrl,
-        bool $generateInteractive
-    ): string {
+        bool    $generateInteractive
+    ): string
+    {
         $this->logger->info('Starting AI Generation Stage 1: Technical Design', ['store_id' => $storeId]);
         $stageIdentifier = 'Stage 1 (Design)'; // Define for logging in helpers
 

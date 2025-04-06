@@ -12,16 +12,17 @@ declare(strict_types=1);
 
 namespace NeutromeLabs\AiLand\Model\Service;
 
+use Exception;
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Exception\FileSystemException;
-use Magento\Framework\Filesystem\Driver\File as FileDriver;
-use Psr\Log\LoggerInterface;
-use Magento\Theme\Model\ResourceModel\Theme\CollectionFactory as ThemeCollectionFactory;
-use Magento\Framework\Component\ComponentRegistrarInterface;
 use Magento\Framework\Component\ComponentRegistrar;
+use Magento\Framework\Component\ComponentRegistrarInterface;
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Filesystem\Driver\File as FileDriver;
 use Magento\Framework\View\DesignInterface;
+use Magento\Store\Model\ScopeInterface;
+use Magento\Theme\Model\ResourceModel\Theme\CollectionFactory as ThemeCollectionFactory;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service class for theme-related operations.
@@ -63,12 +64,13 @@ class ThemeService
      * @param LoggerInterface $logger
      */
     public function __construct(
-        ScopeConfigInterface $scopeConfig,
-        ThemeCollectionFactory $themeCollectionFactory,
+        ScopeConfigInterface        $scopeConfig,
+        ThemeCollectionFactory      $themeCollectionFactory,
         ComponentRegistrarInterface $componentRegistrar,
-        FileDriver $fileDriver,
-        LoggerInterface $logger
-    ) {
+        FileDriver                  $fileDriver,
+        LoggerInterface             $logger
+    )
+    {
         $this->scopeConfig = $scopeConfig;
         $this->themeCollectionFactory = $themeCollectionFactory;
         $this->componentRegistrar = $componentRegistrar;
@@ -106,8 +108,8 @@ class ThemeService
 
             $themePathIdentifier = $theme->getFullPath();
             if (!$themePathIdentifier) {
-                 $this->logger->warning('Theme model does not have a path identifier.', ['theme_id' => $themeId]);
-                 return null;
+                $this->logger->warning('Theme model does not have a path identifier.', ['theme_id' => $themeId]);
+                return null;
             }
             // Ensure component type is correct
             $themeDir = $this->componentRegistrar->getPath(ComponentRegistrar::THEME, $themePathIdentifier);
@@ -136,7 +138,7 @@ class ThemeService
             $this->logger->error('Error resolving theme or Tailwind config path: ' . $e->getMessage(), ['store_id' => $storeId]);
         } catch (FileSystemException $e) {
             $this->logger->error('Filesystem error reading Tailwind config: ' . $e->getMessage(), ['store_id' => $storeId]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->error('Unexpected error getting Tailwind config: ' . $e->getMessage(), ['store_id' => $storeId, 'exception' => $e]);
         }
 

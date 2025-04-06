@@ -8,7 +8,8 @@
  * @author      Cline (AI Assistant)
  */
 -->
-<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <update handle="styles"/> <!-- Include standard backend styles -->
     <head>
         <!-- Add necessary CSS/JS if needed -->
@@ -17,26 +18,32 @@
     <body>
         <referenceContainer name="content">
             <!-- Add a standard block to render the PHTML form -->
-            <block class="Magento\Backend\Block\Template" name="ailand_landing_form_container" template="NeutromeLabs_AiLand::landing/form.phtml">
+            <block class="Magento\Backend\Block\Template" name="ailand_landing_form_container"
+                   template="NeutromeLabs_AiLand::landing/form.phtml">
                 <!-- We can add child blocks here if needed for specific form parts like buttons -->
-                 <block class="Magento\Backend\Block\Widget\Button" name="ailand.generate.button" as="generate_button">
+                <block class="Magento\Backend\Block\Widget\Button" name="ailand.generate.button" as="generate_button">
                     <arguments>
                         <argument name="label" xsi:type="string" translate="true">Generate</argument>
-                        <argument name="class" xsi:type="string">primary generate-ai-content-button</argument> <!-- Class for JS hook -->
+                        <argument name="class" xsi:type="string">primary generate-ai-content-button
+                        </argument> <!-- Class for JS hook -->
                         <!-- onclick will be handled by JS -->
                     </arguments>
                 </block>
-                 <block class="Magento\Backend\Block\Widget\Button" name="ailand.improve.button" as="improve_button"> <!-- Renamed -->
+                <block class="Magento\Backend\Block\Widget\Button" name="ailand.improve.button"
+                       as="improve_button"> <!-- Renamed -->
                     <arguments>
-                        <argument name="label" xsi:type="string" translate="true">Improve</argument> <!-- Changed Label -->
-                        <argument name="class" xsi:type="string">improve-ai-content-button</argument> <!-- Changed Class -->
+                        <argument name="label" xsi:type="string" translate="true">Improve
+                        </argument> <!-- Changed Label -->
+                        <argument name="class" xsi:type="string">improve-ai-content-button
+                        </argument> <!-- Changed Class -->
                         <!-- onclick will be handled by JS -->
                     </arguments>
                 </block>
-                 <block class="Magento\Backend\Block\Widget\Button" name="ailand.save.button" as="save_button">
+                <block class="Magento\Backend\Block\Widget\Button" name="ailand.save.button" as="save_button">
                     <arguments>
                         <argument name="label" xsi:type="string" translate="true">Save as CMS Block</argument>
-                        <argument name="class" xsi:type="string">primary save-cms-block</argument> <!-- Class for JS hook -->
+                        <argument name="class" xsi:type="string">primary save-cms-block
+                        </argument> <!-- Class for JS hook -->
                         <argument name="id" xsi:type="string">save-button</argument>
                         <argument name="type" xsi:type="string">submit</argument>
                     </arguments>

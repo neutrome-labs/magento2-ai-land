@@ -10,20 +10,25 @@ declare(strict_types=1);
 
 namespace NeutromeLabs\AiLand\Model;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
-use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
+use Magento\Catalog\Api\ProductRepositoryInterface;
+use Magento\Catalog\Model\Product\Attribute\Source\Status;
+use Magento\Catalog\Model\Product\Visibility;
+use Magento\Directory\Helper\Data;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
-// Removed: Curl, JsonSerializer
-use Psr\Log\LoggerInterface;
+use Magento\Framework\UrlInterface;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
+
+// Removed: Curl, JsonSerializer
+
 // Removed: ThemeCollectionFactory, ComponentRegistrarInterface, ComponentRegistrar, DesignInterface
 
 // Added: New Generator classes
-use NeutromeLabs\AiLand\Model\DesignGenerator;
-use NeutromeLabs\AiLand\Model\HtmlGenerator;
 
 /**
  * Service class responsible for orchestrating content generation using AI.
@@ -46,7 +51,7 @@ class AiGenerator
     private $scopeConfig;
 
     /**
-     * @var \Magento\Framework\Encryption\EncryptorInterface
+     * @var EncryptorInterface
      */
     private $encryptor;
 
@@ -84,24 +89,25 @@ class AiGenerator
      * Constructor
      *
      * @param ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\Encryption\EncryptorInterface $encryptor
+     * @param EncryptorInterface $encryptor
      * @param ProductRepositoryInterface $productRepository
      * @param CategoryRepositoryInterface $categoryRepository
      * @param LoggerInterface $logger
      * @param StoreManagerInterface $storeManager
      * @param DesignGenerator $designGenerator // Added
-     * @param HtmlGenerator $htmlGenerator     // Added
+     * @param HtmlGenerator $htmlGenerator // Added
      */
     public function __construct(
-        ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\Encryption\EncryptorInterface $encryptor,
-        ProductRepositoryInterface $productRepository,
-        CategoryRepositoryInterface $categoryRepository,
-        LoggerInterface $logger,
-        StoreManagerInterface $storeManager,
-        DesignGenerator $designGenerator, // Added
-        HtmlGenerator $htmlGenerator      // Added
-    ) {
+        ScopeConfigInterface                             $scopeConfig,
+        EncryptorInterface $encryptor,
+        ProductRepositoryInterface                       $productRepository,
+        CategoryRepositoryInterface                      $categoryRepository,
+        LoggerInterface                                  $logger,
+        StoreManagerInterface                            $storeManager,
+        DesignGenerator                                  $designGenerator, // Added
+        HtmlGenerator                                    $htmlGenerator      // Added
+    )
+    {
         $this->scopeConfig = $scopeConfig;
         $this->encryptor = $encryptor;
         $this->productRepository = $productRepository;
@@ -128,16 +134,17 @@ class AiGenerator
      * @throws LocalizedException
      */
     public function generate(
-        string $customPrompt,
-        string $actionType = 'generate',
+        string  $customPrompt,
+        string  $actionType = 'generate',
         ?string $dataSourceType = null,
-        $sourceId = null,
-        int $storeId = 0,
+                $sourceId = null,
+        int     $storeId = 0,
         ?string $designPlan = null,
         ?string $currentContent = null,
         ?string $referenceImageUrl = null, // Added parameter
-        bool $generateInteractive = false // Added parameter with default
-    ): array {
+        bool    $generateInteractive = false // Added parameter with default
+    ): array
+    {
         $apiKey = $this->getApiKey($storeId);
         if (!$apiKey) {
             throw new LocalizedException(__('OpenRouter API Key is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
@@ -145,7 +152,7 @@ class AiGenerator
 
         // Allow empty custom prompt if a data source is provided for automatic generation
         if (empty($customPrompt) && empty($dataSourceType)) {
-             throw new LocalizedException(__('A custom prompt is required for generation if no Product or Category is selected.'));
+            throw new LocalizedException(__('A custom prompt is required for generation if no Product or Category is selected.'));
         }
 
         $technicalDesign = null;
@@ -156,7 +163,7 @@ class AiGenerator
             // --- Stage 1: Generate Technical Design ---
             $thinkingModel = $this->getThinkingModel($storeId);
             if (!$thinkingModel) {
-                 throw new LocalizedException(__('OpenRouter Thinking Model is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
+                throw new LocalizedException(__('OpenRouter Thinking Model is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
             }
 
             try {
@@ -206,7 +213,7 @@ class AiGenerator
 
         } elseif ($actionType === 'improve') {
             $renderingModel = $this->getRenderingModel($storeId); // Get rendering model once for improve/retry
-             if (!$renderingModel) {
+            if (!$renderingModel) {
                 throw new LocalizedException(__('OpenRouter Rendering Model is not configured for improvement/retry.'));
             }
 
@@ -226,11 +233,11 @@ class AiGenerator
                     );
                     $technicalDesign = $designPlan; // Keep the original design plan
                 } catch (LocalizedException $e) {
-                     $this->logger->error('Error during Retry Stage 2 HTML generation: ' . $e->getMessage());
-                     return [
+                    $this->logger->error('Error during Retry Stage 2 HTML generation: ' . $e->getMessage());
+                    return [
                         'design' => $designPlan, // Return original design plan on retry error
                         'html' => __('Error retrying HTML generation (Stage 2): %1', $e->getMessage()),
-                     ];
+                    ];
                 }
             } else {
                 // Scenario: Standard Improvement
@@ -246,25 +253,25 @@ class AiGenerator
                         $generateInteractive
                     );
                     $technicalDesign = null; // No design plan for standard improvement
-                 } catch (LocalizedException $e) {
-                     $this->logger->error('Error during Improve Stage HTML generation: ' . $e->getMessage());
-                     return [
+                } catch (LocalizedException $e) {
+                    $this->logger->error('Error during Improve Stage HTML generation: ' . $e->getMessage());
+                    return [
                         'design' => null,
                         'html' => __('Error improving HTML: %1', $e->getMessage()),
-                     ];
-                 }
+                    ];
+                }
             }
         } else {
-             throw new LocalizedException(__('Invalid action type specified: %1', $actionType));
+            throw new LocalizedException(__('Invalid action type specified: %1', $actionType));
         }
 
         // Check if $generatedHtml is still null (shouldn't happen if exceptions are caught)
         if ($generatedHtml === null) {
-             $this->logger->error('HTML generation resulted in null unexpectedly.');
-             return [
+            $this->logger->error('HTML generation resulted in null unexpectedly.');
+            return [
                 'design' => $technicalDesign,
                 'html' => __('An unexpected error occurred during HTML processing.'),
-             ];
+            ];
         }
 
         // Basic cleanup (remains here)
@@ -275,6 +282,22 @@ class AiGenerator
             'design' => $technicalDesign,
             'html' => trim($generatedHtml)
         ];
+    }
+
+    /**
+     * Get the configured API key for a specific store scope.
+     *
+     * @param int $storeId
+     * @return string|null
+     */
+    private function getApiKey(int $storeId): ?string
+    {
+        $key = $this->scopeConfig->getValue(
+            self::XML_PATH_API_KEY,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+        return $key ? $this->encryptor->decrypt($key) : null;
     }
 
     /**
@@ -293,9 +316,9 @@ class AiGenerator
         // --- Build Store Context ---
         try {
             $store = $this->storeManager->getStore($storeId);
-            $baseUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
+            $baseUrl = $store->getBaseUrl(UrlInterface::URL_TYPE_WEB);
             $locale = $this->scopeConfig->getValue(
-                \Magento\Directory\Helper\Data::XML_PATH_DEFAULT_LOCALE,
+                Data::XML_PATH_DEFAULT_LOCALE,
                 ScopeInterface::SCOPE_STORE,
                 $storeId
             );
@@ -333,12 +356,12 @@ class AiGenerator
                     case 'category':
                         $category = $this->categoryRepository->get((int)$sourceId, $storeId);
                         $products = $category->getProductCollection()
-                                             ->setStoreId($storeId)
-                                             ->addAttributeToSelect('name')
-                                             ->addAttributeToFilter('status', \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED)
-                                             ->addAttributeToFilter('visibility', ['in' => [\Magento\Catalog\Model\Product\Visibility::VISIBILITY_IN_CATALOG, \Magento\Catalog\Model\Product\Visibility::VISIBILITY_BOTH]])
-                                             ->setPageSize(10)
-                                             ->setCurPage(1);
+                            ->setStoreId($storeId)
+                            ->addAttributeToSelect('name')
+                            ->addAttributeToFilter('status', Status::STATUS_ENABLED)
+                            ->addAttributeToFilter('visibility', ['in' => [Visibility::VISIBILITY_IN_CATALOG, Visibility::VISIBILITY_BOTH]])
+                            ->setPageSize(10)
+                            ->setCurPage(1);
                         $productNames = [];
                         foreach ($products as $product) {
                             $productNames[] = $product->getName();
@@ -369,22 +392,6 @@ class AiGenerator
     }
 
     /**
-     * Get the configured API key for a specific store scope.
-     *
-     * @param int $storeId
-     * @return string|null
-     */
-    private function getApiKey(int $storeId): ?string
-    {
-        $key = $this->scopeConfig->getValue(
-            self::XML_PATH_API_KEY,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
-        return $key ? $this->encryptor->decrypt($key) : null;
-    }
-
-     /**
      * Get the configured Thinking Model name for a specific store scope.
      *
      * @param int $storeId
@@ -399,7 +406,7 @@ class AiGenerator
         ) ?: self::DEFAULT_THINKING_MODEL;
     }
 
-     /**
+    /**
      * Get the configured Rendering Model name for a specific store scope.
      *
      * @param int $storeId
@@ -413,4 +420,4 @@ class AiGenerator
             $storeId
         ) ?: self::DEFAULT_RENDERING_MODEL;
     }
- }
+}

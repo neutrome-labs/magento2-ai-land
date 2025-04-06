@@ -8,17 +8,20 @@
  * @author      Cline (AI Assistant)
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="NeutromeLabs_AiLand::generate" title="Generate AI Landing Page" translate="title" sortOrder="100" />
+                <resource id="NeutromeLabs_AiLand::generate" title="Generate AI Landing Page" translate="title"
+                          sortOrder="100"/>
                 <!-- Resource for System Configuration -->
                 <resource id="Magento_Backend::stores">
                     <resource id="Magento_Backend::stores_settings">
                         <resource id="Magento_Config::config">
                             <!-- Our configuration section resource -->
-                            <resource id="NeutromeLabs_AiLand::config" title="NeutromeLabs AI Landings Section" translate="title" />
+                            <resource id="NeutromeLabs_AiLand::config" title="NeutromeLabs AI Landings Section"
+                                      translate="title"/>
                         </resource>
                     </resource>
                 </resource>
