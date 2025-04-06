@@ -78,7 +78,8 @@ class Generate extends Action implements HttpPostActionInterface
             $designPlan = $this->getRequest()->getParam('generated_design_plan');
             $currentContent = $this->getRequest()->getParam('generated_content');
             $actionType = $this->getRequest()->getParam('action_type', 'generate');
-            $storeId = $this->getRequest()->getParam('store_id'); // Get store_id
+            $storeId = $this->getRequest()->getParam('store_id');
+            $referenceImageUrl = $this->getRequest()->getParam('reference_image_url'); // Get image URL
 
             // Validate store_id - it's now required by the generator
             if (empty($storeId) || !is_numeric($storeId) || (int)$storeId <= 0) {
@@ -109,9 +110,10 @@ class Generate extends Action implements HttpPostActionInterface
                 $actionType,
                 $dataSourceType,
                 $sourceId,
-                $storeId, // Pass storeId here
+                $storeId,
                 $designPlan,
-                $currentContent
+                $currentContent,
+                $referenceImageUrl // Pass image URL here
             );
 
             $response = [

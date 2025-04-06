@@ -161,6 +161,7 @@ class AiGenerator
      * @param int $storeId The ID of the store context.
      * @param string|null $designPlan The existing design plan if actionType is 'improve'
      * @param string|null $currentContent The current HTML content if actionType is 'improve'
+     * @param string|null $referenceImageUrl Optional URL for a reference image.
      * @return array ['design' => string|null, 'html' => string]
      * @throws LocalizedException
      */
@@ -171,7 +172,8 @@ class AiGenerator
         $sourceId = null,
         int $storeId = 0,
         ?string $designPlan = null,
-        ?string $currentContent = null
+        ?string $currentContent = null,
+        ?string $referenceImageUrl = null // Added parameter
     ): array {
         $apiKey = $this->getApiKey($storeId);
         if (!$apiKey) {
@@ -204,7 +206,23 @@ class AiGenerator
             if (!empty($contextData['data_source_context'])) {
                 $designMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
             }
+            // Add the final user prompt (goal + custom instructions)
+            // This is the message we'll potentially modify for multimodal input
             $designMessages[] = ['role' => 'user', 'content' => $designUserPrompt];
+
+            // --- Add Image URL to the last user message if provided ---
+            if ($referenceImageUrl && !empty(trim($referenceImageUrl))) {
+                $lastMessageIndex = count($designMessages) - 1;
+                if ($designMessages[$lastMessageIndex]['role'] === 'user') {
+                    $originalText = $designMessages[$lastMessageIndex]['content'];
+                    $designMessages[$lastMessageIndex]['content'] = [
+                        ['type' => 'text', 'text' => $originalText],
+                        ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
+                    ];
+                    $this->logger->info('Added reference image to Design stage request.', ['url' => trim($referenceImageUrl)]);
+                }
+            }
+            // --- End Image URL addition ---
 
             $thinkingModel = $this->getThinkingModel($storeId);
             if (!$thinkingModel) {
@@ -234,6 +252,30 @@ class AiGenerator
             if ($tailwindConfig) {
                 $htmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration:\n```javascript\n" . $tailwindConfig . "\n```"];
             }
+            // Note: The last message here is the Tailwind config if present, otherwise the Design Plan.
+            // We need to ensure the image is added to the *intended* final user prompt part.
+            // Let's restructure slightly to add a dedicated "User Instructions" message at the end for HTML stage if needed,
+            // or modify the Design Plan message. For simplicity, let's modify the Design Plan message.
+
+            // --- Add Image URL to the Design Plan message if provided ---
+             $designPlanMessageIndex = -1;
+             foreach ($htmlMessages as $index => $msg) {
+                 if ($msg['role'] === 'user' && strpos($msg['content'], 'Technical Design Plan:') === 0) {
+                     $designPlanMessageIndex = $index;
+                     break;
+                 }
+             }
+
+            if ($referenceImageUrl && !empty(trim($referenceImageUrl)) && $designPlanMessageIndex !== -1) {
+                $originalText = $htmlMessages[$designPlanMessageIndex]['content'];
+                $htmlMessages[$designPlanMessageIndex]['content'] = [
+                    ['type' => 'text', 'text' => $originalText],
+                    ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
+                ];
+                 $this->logger->info('Added reference image to HTML stage request.', ['url' => trim($referenceImageUrl)]);
+            }
+             // --- End Image URL addition ---
+
 
             $generatedHtml = null;
             try {
@@ -289,6 +331,20 @@ class AiGenerator
                     $retryHtmlMessages[] = ['role' => 'user', 'content' => "Additional User Instructions for this attempt:\n" . $customPrompt];
                  }
 
+                 // --- Add Image URL to the last user message if provided ---
+                 if ($referenceImageUrl && !empty(trim($referenceImageUrl))) {
+                     $lastMessageIndex = count($retryHtmlMessages) - 1;
+                     if ($retryHtmlMessages[$lastMessageIndex]['role'] === 'user') {
+                         $originalText = $retryHtmlMessages[$lastMessageIndex]['content'];
+                         $retryHtmlMessages[$lastMessageIndex]['content'] = [
+                             ['type' => 'text', 'text' => $originalText],
+                             ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
+                         ];
+                         $this->logger->info('Added reference image to Retry stage request.', ['url' => trim($referenceImageUrl)]);
+                     }
+                 }
+                 // --- End Image URL addition ---
+
                 try {
                     $generatedHtml = $this->callOpenRouterApi($apiKey, $renderingModel, $retryHtmlMessages, 'Retry Stage 2 (HTML)');
                     $this->logger->info('Completed Retry Stage 2.');
@@ -324,6 +380,20 @@ class AiGenerator
                      $improveMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
                  }
                  $improveMessages[] = ['role' => 'user', 'content' => "User's Improvement Request:\n" . $customPrompt];
+
+                 // --- Add Image URL to the last user message if provided ---
+                 if ($referenceImageUrl && !empty(trim($referenceImageUrl))) {
+                     $lastMessageIndex = count($improveMessages) - 1;
+                     if ($improveMessages[$lastMessageIndex]['role'] === 'user') {
+                         $originalText = $improveMessages[$lastMessageIndex]['content'];
+                         $improveMessages[$lastMessageIndex]['content'] = [
+                             ['type' => 'text', 'text' => $originalText],
+                             ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
+                         ];
+                          $this->logger->info('Added reference image to Improve stage request.', ['url' => trim($referenceImageUrl)]);
+                     }
+                 }
+                 // --- End Image URL addition ---
 
                  try {
                     $generatedHtml = $this->callOpenRouterApi($apiKey, $renderingModel, $improveMessages, 'Improve Stage');

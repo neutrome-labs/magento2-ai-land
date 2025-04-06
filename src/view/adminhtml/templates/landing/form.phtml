@@ -75,6 +75,16 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
                 </div>
             </div>
 
+            <div class="admin__field">
+                <label class="admin__field-label" for="reference_image_url"><span><?= $block->escapeHtml(__('Reference Image URL')) ?></span></label>
+                <div class="admin__field-control">
+                    <input id="reference_image_url" name="reference_image_url" type="url" class="admin__control-text" value=""/>
+                     <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('(Optional) Provide a URL to an image for visual reference.')) ?></span>
+                    </div>
+                </div>
+            </div>
+
              <div class="admin__field">
                 <label class="admin__field-label" for="data_source_type"><span><?= $block->escapeHtml(__('Data Source Type')) ?></span></label>
                 <div class="admin__field-control">

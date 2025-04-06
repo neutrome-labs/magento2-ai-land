@@ -96,15 +96,16 @@ define([
 
             var formData = $form.serializeArray();
             var storeId = $storeSwitcher.val(); // Get store ID
+            var referenceImageUrl = $('#reference_image_url').val(); // Get reference image URL
 
             // Add actionType flag
             formData.push({name: 'action_type', value: actionType});
             // Add store_id flag if a valid store is selected
-            if (storeId && storeId !== '0') { // Check if storeId is valid (not empty or '0' for 'All Store Views')
+            if (storeId && storeId !== '0') {
                 formData.push({name: 'store_id', value: storeId});
-                console.log('Adding store_id to request:', storeId); // Debug log
+                console.log('Adding store_id to request:', storeId);
             } else {
-                 console.log('No specific store selected or store_id is 0, not adding to request.'); // Debug log
+                 console.log('No specific store selected or store_id is 0, not adding to request.');
                  // Optional: Show an alert if a specific store is required?
                  // alert({ title: $t('Store Selection Required'), content: $t('Please select a specific store view.') });
                  // isGenerating = false; // Reset flag
@@ -112,6 +113,11 @@ define([
                  // $buttonsToDisable.each(function() { /* ... re-enable logic ... */ });
                  // $otherButtons.prop('disabled', false).removeClass('disabled');
                  // return; // Stop processing if store selection is mandatory
+            }
+            // Add reference_image_url if provided
+            if (referenceImageUrl && referenceImageUrl.trim() !== '') {
+                formData.push({name: 'reference_image_url', value: referenceImageUrl.trim()});
+                console.log('Adding reference_image_url to request:', referenceImageUrl.trim());
             }
 
 
