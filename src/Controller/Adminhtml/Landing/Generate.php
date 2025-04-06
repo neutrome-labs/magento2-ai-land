@@ -80,6 +80,7 @@ class Generate extends Action implements HttpPostActionInterface
             $actionType = $this->getRequest()->getParam('action_type', 'generate');
             $storeId = $this->getRequest()->getParam('store_id');
             $referenceImageUrl = $this->getRequest()->getParam('reference_image_url'); // Get image URL
+            $generateInteractive = (bool)$this->getRequest()->getParam('generate_interactive', false); // Get checkbox state
 
             // Validate store_id - it's now required by the generator
             if (empty($storeId) || !is_numeric($storeId) || (int)$storeId <= 0) {
@@ -113,7 +114,8 @@ class Generate extends Action implements HttpPostActionInterface
                 $storeId,
                 $designPlan,
                 $currentContent,
-                $referenceImageUrl // Pass image URL here
+                $referenceImageUrl, // Pass image URL here
+                $generateInteractive // Pass interactive flag here
             );
 
             $response = [

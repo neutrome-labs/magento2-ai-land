@@ -162,6 +162,7 @@ class AiGenerator
      * @param string|null $designPlan The existing design plan if actionType is 'improve'
      * @param string|null $currentContent The current HTML content if actionType is 'improve'
      * @param string|null $referenceImageUrl Optional URL for a reference image.
+     * @param bool $generateInteractive Whether to instruct the AI to use GraphQL.
      * @return array ['design' => string|null, 'html' => string]
      * @throws LocalizedException
      */
@@ -173,7 +174,8 @@ class AiGenerator
         int $storeId = 0,
         ?string $designPlan = null,
         ?string $currentContent = null,
-        ?string $referenceImageUrl = null // Added parameter
+        ?string $referenceImageUrl = null, // Added parameter
+        bool $generateInteractive = false // Added parameter with default
     ): array {
         $apiKey = $this->getApiKey($storeId);
         if (!$apiKey) {
@@ -206,21 +208,30 @@ class AiGenerator
             if (!empty($contextData['data_source_context'])) {
                 $designMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
             }
+            // Conditionally add instruction to use GraphQL
+            if ($generateInteractive) {
+                $htmlMessages[] = [
+                    'role' => 'user',
+                    'content' => "IMPORTANT IMPLEMENTATION NOTE: When generating the HTML and JavaScript, DO NOT hardcode dynamic data (like product names, prices, descriptions, category lists, etc.) or actions (like add to cart). Instead, implement the necessary logic using Magento 2's GraphQL API. Assume the GraphQL endpoint is available at '/graphql'. Use appropriate queries and mutations for data fetching and actions."
+                ];
+                $this->logger->info('Adding GraphQL instruction for interactive page generation.');
+            } else {
+                 $this->logger->info('Skipping GraphQL instruction for static page generation.');
+            }
             // Add the final user prompt (goal + custom instructions)
             // This is the message we'll potentially modify for multimodal input
             $designMessages[] = ['role' => 'user', 'content' => $designUserPrompt];
 
             // --- Add Image URL to the last user message if provided ---
             if ($referenceImageUrl && !empty(trim($referenceImageUrl))) {
-                $lastMessageIndex = count($designMessages) - 1;
-                if ($designMessages[$lastMessageIndex]['role'] === 'user') {
-                    $originalText = $designMessages[$lastMessageIndex]['content'];
-                    $designMessages[$lastMessageIndex]['content'] = [
-                        ['type' => 'text', 'text' => $originalText],
+                $designMessages[] = [
+                    'role' => 'user',
+                    'content' => [
+                        ['type' => 'text', 'text' => 'Reference Image:'],
                         ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
-                    ];
-                    $this->logger->info('Added reference image to Design stage request.', ['url' => trim($referenceImageUrl)]);
-                }
+                    ]
+                ];
+                $this->logger->info('Added reference image to Design stage request.', ['url' => trim($referenceImageUrl)]);
             }
             // --- End Image URL addition ---
 
@@ -252,30 +263,27 @@ class AiGenerator
             if ($tailwindConfig) {
                 $htmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration:\n```javascript\n" . $tailwindConfig . "\n```"];
             }
-            // Note: The last message here is the Tailwind config if present, otherwise the Design Plan.
-            // We need to ensure the image is added to the *intended* final user prompt part.
-            // Let's restructure slightly to add a dedicated "User Instructions" message at the end for HTML stage if needed,
-            // or modify the Design Plan message. For simplicity, let's modify the Design Plan message.
-
-            // --- Add Image URL to the Design Plan message if provided ---
-             $designPlanMessageIndex = -1;
-             foreach ($htmlMessages as $index => $msg) {
-                 if ($msg['role'] === 'user' && strpos($msg['content'], 'Technical Design Plan:') === 0) {
-                     $designPlanMessageIndex = $index;
-                     break;
-                 }
-             }
-
-            if ($referenceImageUrl && !empty(trim($referenceImageUrl)) && $designPlanMessageIndex !== -1) {
-                $originalText = $htmlMessages[$designPlanMessageIndex]['content'];
-                $htmlMessages[$designPlanMessageIndex]['content'] = [
-                    ['type' => 'text', 'text' => $originalText],
-                    ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
+            // Conditionally add instruction to use GraphQL
+            if ($generateInteractive) {
+                $htmlMessages[] = [
+                    'role' => 'user',
+                    'content' => "IMPORTANT IMPLEMENTATION NOTE: When generating the HTML and JavaScript, DO NOT hardcode dynamic data (like product names, prices, descriptions, category lists, etc.) or actions (like add to cart). Instead, implement the necessary logic using Magento 2's GraphQL API. Assume the GraphQL endpoint is available at '/graphql'. Use appropriate queries and mutations for data fetching and actions."
+                ];
+                $this->logger->info('Adding GraphQL instruction for interactive page generation.');
+            } else {
+                 $this->logger->info('Skipping GraphQL instruction for static page generation.');
+            }
+            if ($referenceImageUrl && !empty(trim($referenceImageUrl))) {
+                $htmlMessages[] = [
+                    'role' => 'user', 
+                    'content' => [
+                        ['type' => 'text', 'text' => 'Reference Image:'],
+                        ['type' => 'image_url', 'image_url' => ['url' => trim($referenceImageUrl)]]
+                    ],
                 ];
                  $this->logger->info('Added reference image to HTML stage request.', ['url' => trim($referenceImageUrl)]);
             }
              // --- End Image URL addition ---
-
 
             $generatedHtml = null;
             try {
@@ -346,6 +354,16 @@ class AiGenerator
                  // --- End Image URL addition ---
 
                 try {
+                    // Conditionally add instruction to use GraphQL for retry
+                    if ($generateInteractive) {
+                        $retryHtmlMessages[] = [
+                            'role' => 'user',
+                            'content' => "IMPORTANT IMPLEMENTATION NOTE: When generating the HTML and JavaScript, DO NOT hardcode dynamic data (like product names, prices, descriptions, category lists, etc.) or actions (like add to cart). Instead, implement the necessary logic using Magento 2's GraphQL API. Assume the GraphQL endpoint is available at '/graphql'. Use appropriate queries and mutations for data fetching and actions."
+                        ];
+                        $this->logger->info('Adding GraphQL instruction for interactive page retry.');
+                    } else {
+                        $this->logger->info('Skipping GraphQL instruction for static page retry.');
+                    }
                     $generatedHtml = $this->callOpenRouterApi($apiKey, $renderingModel, $retryHtmlMessages, 'Retry Stage 2 (HTML)');
                     $this->logger->info('Completed Retry Stage 2.');
                     $technicalDesign = $designPlan;
@@ -379,6 +397,18 @@ class AiGenerator
                  if ($tailwindConfig) {
                      $improveMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
                  }
+
+                // Conditionally add instruction to use GraphQL for improvement
+                if ($generateInteractive) {
+                    $improveMessages[] = [
+                        'role' => 'user',
+                        'content' => "IMPORTANT IMPLEMENTATION NOTE: When generating the HTML and JavaScript, DO NOT hardcode dynamic data (like product names, prices, descriptions, category lists, etc.) or actions (like add to cart). Instead, implement the necessary logic using Magento 2's GraphQL API. Assume the GraphQL endpoint is available at '/graphql'. Use appropriate queries and mutations for data fetching and actions."
+                    ];
+                    $this->logger->info('Adding GraphQL instruction for interactive page improvement.');
+                } else {
+                    $this->logger->info('Skipping GraphQL instruction for static page improvement.');
+                }
+
                  $improveMessages[] = ['role' => 'user', 'content' => "User's Improvement Request:\n" . $customPrompt];
 
                  // --- Add Image URL to the last user message if provided ---
@@ -396,6 +426,7 @@ class AiGenerator
                  // --- End Image URL addition ---
 
                  try {
+                    
                     $generatedHtml = $this->callOpenRouterApi($apiKey, $renderingModel, $improveMessages, 'Improve Stage');
                     $this->logger->info('Completed AI Generation: Improve HTML.');
                     $technicalDesign = null;
@@ -467,6 +498,7 @@ class AiGenerator
                     case 'product':
                         $product = $this->productRepository->getById((int)$sourceId, false, $storeId);
                         $promptData = [
+                            'SKU' => $product->getSku(),
                             'Product Name' => $product->getName(),
                             'Price' => $product->getPriceInfo()->getPrice('final_price')->getValue(),
                             'Short Description' => $product->getShortDescription(),
@@ -494,6 +526,7 @@ class AiGenerator
                             $productNames[] = $product->getName();
                         }
                         $promptData = [
+                            'Category ID' => $category->getId(),
                             'Category Name' => $category->getName(),
                             'Description' => $category->getDescription(),
                             'Products in this category include' => implode(', ', $productNames)
@@ -576,7 +609,7 @@ class AiGenerator
             curl_close($ch);
 
             $this->logger->debug("OpenRouter Response [$stageIdentifier] Status: " . $statusCode);
-            $this->logger->debug("OpenRouter Response [$stageIdentifier] Body: " . $responseBody);
+            $this->logger->debug("OpenRouter Response [$stageIdentifier] Body: " . trim($responseBody));
 
             if ($curlError) {
                 throw new LocalizedException(__("cURL Error calling OpenRouter API [$stageIdentifier]: %1", $curlError));

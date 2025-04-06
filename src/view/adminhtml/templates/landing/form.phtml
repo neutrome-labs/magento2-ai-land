@@ -85,6 +85,17 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
                 </div>
             </div>
 
+            <div class="admin__field">
+                <label class="admin__field-label" for="generate_interactive"><span><?= $block->escapeHtml(__('Generate Interactive Page')) ?></span></label>
+                <div class="admin__field-control">
+                    <input id="generate_interactive" name="generate_interactive" type="checkbox" class="admin__control-checkbox" value="1"/>
+                    <label class="admin__field-label" for="generate_interactive"><span><?= $block->escapeHtml(__('Enable GraphQL Integration')) ?></span></label>
+                    <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('If checked, the AI will be instructed to use Magento GraphQL for dynamic data and actions (e.g., product loading, add to cart). If unchecked, the AI will generate static content based on the prompt and context.')) ?></span>
+                    </div>
+                </div>
+            </div>
+
              <div class="admin__field">
                 <label class="admin__field-label" for="data_source_type"><span><?= $block->escapeHtml(__('Data Source Type')) ?></span></label>
                 <div class="admin__field-control">
