@@ -13,7 +13,7 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="NeutromeLabs_AiLand::generate" title="Generate AI Landing Page" translate="title"
+                <resource id="NeutromeLabs_AiLand::generate" title="Generate AI Landing" translate="title"
                           sortOrder="100"/>
                 <!-- Resource for System Configuration -->
                 <resource id="Magento_Backend::stores">
