@@ -13,7 +13,6 @@
         <ailand>
             <openrouter> <!-- Changed group ID -->
                 <api_key></api_key> <!-- Default is empty -->
-                <!-- <model>qwen/qwq-32b:free</model> Removed old default model -->
                 <thinking_model>deepseek/deepseek-r1:free</thinking_model> <!-- Default thinking model -->
                 <rendering_model>deepseek/deepseek-chat-v3-0324:free</rendering_model> <!-- Default rendering model -->
                 <product_base_prompt><![CDATA[**Your Goal:** Based *only* on the provided information below, create a structural plan outlining the necessary components, layout, and interactive elements for the promotion page. The design should effectively present the promotional content and guide the user towards the desired action.
@@ -22,7 +21,12 @@
 2.  **Layout Structure:** Briefly describe the intended layout for major sections (e.g., "Hero: Full-width", "Product Showcase: 3-column grid on desktop, collapsing to 1-column on mobile", "Features: Alternating image-text blocks using flexbox"). Mention responsiveness considerations where relevant.
 3.  **Interactive Elements:** Specify any necessary interactive components (e.g., "Image gallery/carousel for product visuals", "Tabs for detailed specifications", "Accordion for FAQ section", "Modal popup for email signup").
 4.  **Adherence:** Strictly follow all instructions provided in the `User Directions/Constraints`.]]></product_base_prompt>
-                <category_base_prompt><![CDATA[Generate a product listing page. Showcase the category's products in an engaging layout, with emphasis on visual appeal and conversions.]]></category_base_prompt>
+                <category_base_prompt><![CDATA[**Your Goal:** Based *only* on the provided information below, create a structural plan outlining the necessary components, layout, and interactive elements for the category landing page. The design should effectively present the category's products and facilitate user navigation and filtering.
+
+1.  **Key Components:** Identify and list the essential sections of the page (e.g., Category Title/Banner, Product Grid/List, Filtering/Sorting Controls, Faceted Navigation/Sidebar, Pagination, Call-to-Action (CTA) sections if relevant, Footer). Be specific based on the provided context.
+2.  **Layout Structure:** Briefly describe the intended layout for major sections (e.g., "Main Content: Product grid (specify columns for desktop/tablet/mobile)", "Sidebar: Vertical list for filters", "Pagination: Centered below grid"). Mention responsiveness considerations.
+3.  **Interactive Elements:** Specify any necessary interactive components (e.g., "Clickable product items", "Checkboxes/radio buttons/sliders for filters", "Dropdown for sorting", "Pagination links/buttons").
+4.  **Adherence:** Strictly follow all instructions provided in the `User Directions/Constraints`.]]></category_base_prompt>
             </openrouter>
         </ailand>
     </default>
