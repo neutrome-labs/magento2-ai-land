@@ -13,7 +13,9 @@
         <ailand>
             <openrouter> <!-- Changed group ID -->
                 <api_key></api_key> <!-- Default is empty -->
-                <model>qwen/qwq-32b:free</model> <!-- Added default model -->
+                <!-- <model>qwen/qwq-32b:free</model> Removed old default model -->
+                <thinking_model>deepseek/deepseek-r1:free</thinking_model> <!-- Default thinking model -->
+                <rendering_model>deepseek/deepseek-chat-v3-0324:free</rendering_model> <!-- Default rendering model -->
                 <product_base_prompt><![CDATA[**Your Goal:** Based *only* on the provided information below, create a structural plan outlining the necessary components, layout, and interactive elements for the promotion page. The design should effectively present the promotional content and guide the user towards the desired action.
 
 1.  **Key Components:** Identify and list the essential sections of the page (e.g., Hero Banner with Promo Headline, Product/Category Showcase, Feature/Benefit Highlights, Call-to-Action (CTA) buttons/sections, Testimonials/Social Proof, How it Works/Steps, Footer). Be specific based on the provided context.

@@ -78,6 +78,13 @@ class Generate extends Action implements HttpPostActionInterface
             $designPlan = $this->getRequest()->getParam('generated_design_plan');
             $currentContent = $this->getRequest()->getParam('generated_content');
             $actionType = $this->getRequest()->getParam('action_type', 'generate');
+            $storeId = $this->getRequest()->getParam('store_id'); // Get store_id
+
+            // Validate store_id - it's now required by the generator
+            if (empty($storeId) || !is_numeric($storeId) || (int)$storeId <= 0) {
+                 throw new LocalizedException(__('A valid Store View must be selected.'));
+            }
+            $storeId = (int)$storeId; // Cast to integer
 
             $response['design'] = $designPlan; // Pass design plan to the response
             $response['html'] = $currentContent; // Pass current content to the response
@@ -102,6 +109,7 @@ class Generate extends Action implements HttpPostActionInterface
                 $actionType,
                 $dataSourceType,
                 $sourceId,
+                $storeId, // Pass storeId here
                 $designPlan,
                 $currentContent
             );

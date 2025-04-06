@@ -19,22 +19,33 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\HTTP\Client\Curl;
 use Magento\Framework\Serialize\Serializer\Json as JsonSerializer;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\Module\Dir\Reader as ModuleDirReader;
+use Magento\Framework\Module\Dir\Reader as ModuleDirReader; // Keep for prompt reading
 use Magento\Framework\Filesystem\Driver\File as FileDriver;
 use Magento\Framework\Exception\FileSystemException;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Theme\Model\ResourceModel\Theme\CollectionFactory as ThemeCollectionFactory; // To load theme model
+use Magento\Framework\Component\ComponentRegistrarInterface; // To get theme directory path
+use Magento\Framework\Component\ComponentRegistrar; // For component type constants
+use Magento\Framework\View\DesignInterface; // Needed for XML_PATH_THEME_ID constant
 
 /**
  * Service class responsible for generating content using AI (OpenRouter).
  */
 class AiGenerator
 {
-    // Config paths for OpenRouter
+    // Config paths
     const XML_PATH_API_KEY = 'ailand/openrouter/api_key';
-    const XML_PATH_MODEL = 'ailand/openrouter/model';
-    const XML_PATH_PRODUCT_PROMPT = 'ailand/openrouter/product_base_prompt'; // Added
-    const XML_PATH_CATEGORY_PROMPT = 'ailand/openrouter/category_base_prompt'; // Added
+    const XML_PATH_THINKING_MODEL = 'ailand/openrouter/thinking_model'; // New path
+    const XML_PATH_RENDERING_MODEL = 'ailand/openrouter/rendering_model'; // New path
+    const XML_PATH_PRODUCT_PROMPT = 'ailand/openrouter/product_base_prompt';
+    const XML_PATH_CATEGORY_PROMPT = 'ailand/openrouter/category_base_prompt';
     const OPENROUTER_API_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
     const MODULE_NAME = 'NeutromeLabs_AiLand'; // Module name for directory reading
+
+    // Default Models
+    const DEFAULT_THINKING_MODEL = 'deepseek/deepseek-r1:free';
+    const DEFAULT_RENDERING_MODEL = 'deepseek/deepseek-chat-v3-0324:free';
+
 
     /**
      * @var ScopeConfigInterface
@@ -44,7 +55,7 @@ class AiGenerator
     /**
      * @var \Magento\Framework\Encryption\EncryptorInterface
      */
-    private $encryptor; // Added encryptor to decrypt API key
+    private $encryptor;
 
     /**
      * @var ProductRepositoryInterface
@@ -82,10 +93,25 @@ class AiGenerator
     private $fileDriver;
 
     /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     * @var ThemeCollectionFactory
+     */
+    private $themeCollectionFactory;
+
+    /**
+     * @var ComponentRegistrarInterface
+     */
+    private $componentRegistrar;
+
+    /**
      * Constructor
      *
      * @param ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\Encryption\EncryptorInterface $encryptor // Added type hint
+     * @param \Magento\Framework\Encryption\EncryptorInterface $encryptor
      * @param ProductRepositoryInterface $productRepository
      * @param CategoryRepositoryInterface $categoryRepository
      * @param Curl $httpClient
@@ -93,17 +119,23 @@ class AiGenerator
      * @param LoggerInterface $logger
      * @param ModuleDirReader $moduleDirReader
      * @param FileDriver $fileDriver
+     * @param StoreManagerInterface $storeManager
+     * @param ThemeCollectionFactory $themeCollectionFactory
+     * @param ComponentRegistrarInterface $componentRegistrar
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\Encryption\EncryptorInterface $encryptor, // Added parameter
+        \Magento\Framework\Encryption\EncryptorInterface $encryptor,
         ProductRepositoryInterface $productRepository,
         CategoryRepositoryInterface $categoryRepository,
         Curl $httpClient,
         JsonSerializer $jsonSerializer,
-        LoggerInterface $logger,
-        ModuleDirReader $moduleDirReader,
-        FileDriver $fileDriver
+         LoggerInterface $logger,
+         ModuleDirReader $moduleDirReader,
+         FileDriver $fileDriver,
+         StoreManagerInterface $storeManager,
+         ThemeCollectionFactory $themeCollectionFactory,
+         ComponentRegistrarInterface $componentRegistrar
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->encryptor = $encryptor;
@@ -114,6 +146,9 @@ class AiGenerator
          $this->logger = $logger;
          $this->moduleDirReader = $moduleDirReader;
          $this->fileDriver = $fileDriver;
+         $this->storeManager = $storeManager;
+         $this->themeCollectionFactory = $themeCollectionFactory;
+         $this->componentRegistrar = $componentRegistrar;
     }
 
     /**
@@ -123,6 +158,7 @@ class AiGenerator
      * @param string $actionType ('generate' or 'improve')
      * @param string|null $dataSourceType ('product', 'category', or null/empty for none)
      * @param string|int|null $sourceId (Product ID or Category ID if $dataSourceType is set)
+     * @param int $storeId The ID of the store context.
      * @param string|null $designPlan The existing design plan if actionType is 'improve'
      * @param string|null $currentContent The current HTML content if actionType is 'improve'
      * @return array ['design' => string|null, 'html' => string]
@@ -133,20 +169,13 @@ class AiGenerator
         string $actionType = 'generate',
         ?string $dataSourceType = null,
         $sourceId = null,
+        int $storeId = 0,
         ?string $designPlan = null,
         ?string $currentContent = null
     ): array {
-        $apiKey = $this->getApiKey();
-        $model = $this->getModel();
+        $apiKey = $this->getApiKey($storeId);
         if (!$apiKey) {
             throw new LocalizedException(__('OpenRouter API Key is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
-        }
-        if (!$model) {
-            // Use fallback default if not configured
-            $model = 'qwen/qwq-32b:free';
-            $this->logger->info('OpenRouter Model not configured, using default: ' . $model);
-            // Alternatively, throw exception:
-             // throw new LocalizedException(__('OpenRouter Model is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
         }
 
         // Allow empty custom prompt if a data source is provided for automatic generation
@@ -159,84 +188,120 @@ class AiGenerator
 
         if ($actionType === 'generate') {
             // --- Stage 1: Generate Technical Design ---
-            $this->logger->info('Starting AI Generation Stage 1: Technical Design');
-            $designContext = $this->buildContextData($dataSourceType, $sourceId);
-            $designUserPrompt = $this->buildDesignUserPrompt($customPrompt, $designContext, $dataSourceType);
+            $this->logger->info('Starting AI Generation Stage 1: Technical Design', ['store_id' => $storeId]);
+            $contextData = $this->buildContextData($dataSourceType, $sourceId, $storeId);
+            $designUserPrompt = $this->buildDesignUserPrompt($customPrompt, $contextData, $dataSourceType);
             $designSystemPrompt = $this->getPromptFromFile('design_system_prompt.txt');
             if (!$designSystemPrompt) {
                 throw new LocalizedException(__('Could not load design system prompt.'));
             }
             $designMessages = [
-                ['role' => 'system', 'content' => $designSystemPrompt],
-                ['role' => 'user', 'content' => $designUserPrompt]
+                ['role' => 'system', 'content' => $designSystemPrompt]
             ];
-            $technicalDesign = $this->callOpenRouterApi($apiKey, $model, $designMessages, 'Stage 1 (Design)');
+            if (!empty($contextData['store_context'])) {
+                $designMessages[] = ['role' => 'user', 'content' => "Store Context:\n" . $contextData['store_context']];
+            }
+            if (!empty($contextData['data_source_context'])) {
+                $designMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
+            }
+            $designMessages[] = ['role' => 'user', 'content' => $designUserPrompt];
+
+            $thinkingModel = $this->getThinkingModel($storeId);
+            if (!$thinkingModel) {
+                 throw new LocalizedException(__('OpenRouter Thinking Model is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
+            }
+            $technicalDesign = $this->callOpenRouterApi($apiKey, $thinkingModel, $designMessages, 'Stage 1 (Design)');
             $this->logger->info('Completed AI Generation Stage 1.');
 
             // --- Stage 2: Generate HTML from Design ---
-            $this->logger->info('Starting AI Generation Stage 2: HTML Generation');
+            $this->logger->info('Starting AI Generation Stage 2: HTML Generation', ['store_id' => $storeId]);
             $htmlSystemPrompt = $this->getPromptFromFile('html_system_prompt.txt');
             if (!$htmlSystemPrompt) {
                 throw new LocalizedException(__('Could not load HTML system prompt.'));
             }
-            // Note: designContext is reused from Stage 1
-            $htmlMessages = [
-                ['role' => 'system', 'content' => $htmlSystemPrompt],
-                // Provide original context AND the generated design
-                ['role' => 'user', 'content' => "Context Data:\n" . $designContext . "\n\nTechnical Design Plan:\n" . $technicalDesign]
-            ];
+            $tailwindConfig = $this->getTailwindConfig($storeId);
 
-            $generatedHtml = null; // Initialize
+            $htmlMessages = [
+                ['role' => 'system', 'content' => $htmlSystemPrompt]
+            ];
+            if (!empty($contextData['store_context'])) {
+                $htmlMessages[] = ['role' => 'user', 'content' => "Store Context:\n" . $contextData['store_context']];
+            }
+            if (!empty($contextData['data_source_context'])) {
+                $htmlMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
+            }
+            $htmlMessages[] = ['role' => 'user', 'content' => "Technical Design Plan:\n" . $technicalDesign];
+            if ($tailwindConfig) {
+                $htmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration:\n```javascript\n" . $tailwindConfig . "\n```"];
+            }
+
+            $generatedHtml = null;
             try {
-                $generatedHtml = $this->callOpenRouterApi($apiKey, $model, $htmlMessages, 'Stage 2 (HTML)');
+                $renderingModel = $this->getRenderingModel($storeId);
+                if (!$renderingModel) {
+                    throw new LocalizedException(__('OpenRouter Rendering Model is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
+                }
+                $generatedHtml = $this->callOpenRouterApi($apiKey, $renderingModel, $htmlMessages, 'Stage 2 (HTML)');
                 $this->logger->info('Completed AI Generation Stage 2.');
             } catch (LocalizedException $e) {
-                // Keep technicalDesign, return error for HTML part
                 $this->logger->error('Error during Stage 2 HTML generation: ' . $e->getMessage());
                 return [
-                    'design' => $technicalDesign, // Return the successful design
+                    'design' => $technicalDesign,
                     'html' => __('Error generating HTML (Stage 2): %1', $e->getMessage()),
                 ];
-                // Note: We don't throw the exception here, allowing the controller to get the design
             }
         } elseif ($actionType === 'improve') {
-            $this->logger->info('Starting AI Generation: Improve/Retry HTML');
-            $improveContext = $this->buildContextData($dataSourceType, $sourceId); // Get context again if needed
+            $this->logger->info('Starting AI Generation: Improve/Retry HTML', ['store_id' => $storeId]);
+            $improveContextData = $this->buildContextData($dataSourceType, $sourceId, $storeId);
+            $tailwindConfig = $this->getTailwindConfig($storeId);
+            $renderingModel = $this->getRenderingModel($storeId); // Get rendering model once for improve/retry
+             if (!$renderingModel) {
+                throw new LocalizedException(__('OpenRouter Rendering Model is not configured for improvement/retry.'));
+            }
 
-            if (!empty($designPlan) && strlen($currentContent) < 300) {
+
+            if (!empty($designPlan) && strlen((string)$currentContent) < 300) {
                 // Scenario: Retry Stage 2 using existing design plan
                 $this->logger->info('Retrying Stage 2 HTML generation using existing design plan.');
-                if (empty($customPrompt)) {
+                 if (empty($customPrompt)) {
                      $this->logger->info('No specific improvement prompt provided for retry, generating based on design.');
-                } else {
+                 } else {
                      $this->logger->info('Improvement prompt provided for retry: ' . $customPrompt);
-                      // Optional: Could potentially incorporate the customPrompt into the retry message if desired
                  }
-                 $htmlSystemPrompt = $this->getPromptFromFile('html_system_prompt.txt'); // Re-use HTML prompt for retry
+                 $htmlSystemPrompt = $this->getPromptFromFile('html_system_prompt.txt');
                  if (!$htmlSystemPrompt) {
                      throw new LocalizedException(__('Could not load HTML system prompt for retry.'));
                  }
-                 $htmlMessages = [
-                     ['role' => 'system', 'content' => $htmlSystemPrompt],
-                     ['role' => 'user', 'content' => "Context Data:\n" . $improveContext
-                         . "\n\nTechnical Design Plan:\n" . $designPlan
-                         . "\n\nAdditional User Instructions for this attempt:\n" . $customPrompt]
-                ];
+                 $retryHtmlMessages = [
+                     ['role' => 'system', 'content' => $htmlSystemPrompt]
+                 ];
+                 if (!empty($improveContextData['store_context'])) {
+                     $retryHtmlMessages[] = ['role' => 'user', 'content' => "Store Context:\n" . $improveContextData['store_context']];
+                 }
+                 if (!empty($improveContextData['data_source_context'])) {
+                     $retryHtmlMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $improveContextData['data_source_context']];
+                 }
+                 $retryHtmlMessages[] = ['role' => 'user', 'content' => "Technical Design Plan:\n" . $designPlan];
+                 if ($tailwindConfig) {
+                     $retryHtmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
+                 }
+                 if (!empty($customPrompt)) {
+                    $retryHtmlMessages[] = ['role' => 'user', 'content' => "Additional User Instructions for this attempt:\n" . $customPrompt];
+                 }
+
                 try {
-                    $generatedHtml = $this->callOpenRouterApi($apiKey, $model, $htmlMessages, 'Retry Stage 2 (HTML)');
+                    $generatedHtml = $this->callOpenRouterApi($apiKey, $renderingModel, $retryHtmlMessages, 'Retry Stage 2 (HTML)');
                     $this->logger->info('Completed Retry Stage 2.');
-                    // Keep the original design plan to return
                     $technicalDesign = $designPlan;
                 } catch (LocalizedException $e) {
                      $this->logger->error('Error during Retry Stage 2 HTML generation: ' . $e->getMessage());
-                     // Return original design and new error
                      return [
                         'design' => $designPlan,
                         'html' => __('Error retrying HTML generation (Stage 2): %1', $e->getMessage()),
                      ];
                 }
             } else {
-                // Scenario: Standard Improvement (HTML exists, or no design plan provided)
+                // Scenario: Standard Improvement
                 $this->logger->info('Performing standard HTML improvement.');
                  if (empty($customPrompt)) {
                      throw new LocalizedException(__('An improvement instruction is required in the prompt field when improving content.'));
@@ -246,18 +311,26 @@ class AiGenerator
                      throw new LocalizedException(__('Could not load improve system prompt.'));
                  }
                  $improveMessages = [
-                     ['role' => 'system', 'content' => $improveSystemPrompt],
-                     // Provide original context, existing HTML (even if empty), and the improvement request
-                     ['role' => 'user', 'content' => "Original Context Data:\n" . $improveContext . "\n\nCurrent HTML Block:\n" . ($currentContent ?: '(empty)') . "\n\nUser's Improvement Request:\n" . $customPrompt]
+                     ['role' => 'system', 'content' => $improveSystemPrompt]
                  ];
+                 if (!empty($improveContextData['store_context'])) {
+                     $improveMessages[] = ['role' => 'user', 'content' => "Store Context:\n" . $improveContextData['store_context']];
+                 }
+                 if (!empty($improveContextData['data_source_context'])) {
+                     $improveMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $improveContextData['data_source_context']];
+                 }
+                 $improveMessages[] = ['role' => 'user', 'content' => "Current HTML Block:\n" . ($currentContent ?: '(empty)')];
+                 if ($tailwindConfig) {
+                     $improveMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
+                 }
+                 $improveMessages[] = ['role' => 'user', 'content' => "User's Improvement Request:\n" . $customPrompt];
+
                  try {
-                    $generatedHtml = $this->callOpenRouterApi($apiKey, $model, $improveMessages, 'Improve Stage');
+                    $generatedHtml = $this->callOpenRouterApi($apiKey, $renderingModel, $improveMessages, 'Improve Stage');
                     $this->logger->info('Completed AI Generation: Improve HTML.');
-                    // Design is null when improving this way
                     $technicalDesign = null;
                  } catch (LocalizedException $e) {
                      $this->logger->error('Error during Improve Stage HTML generation: ' . $e->getMessage());
-                     // Return null design and error
                      return [
                         'design' => null,
                         'html' => __('Error improving HTML: %1', $e->getMessage()),
@@ -266,17 +339,16 @@ class AiGenerator
             }
         }
 
-        // Check if $generatedHtml is still null (shouldn't happen with try/catch returning)
+        // Check if $generatedHtml is still null
         if ($generatedHtml === null) {
              $this->logger->error('HTML generation resulted in null unexpectedly.');
-             // Return the design if available, otherwise indicate a general failure
              return [
-                'design' => $technicalDesign, // May be null if improve failed early
+                'design' => $technicalDesign,
                 'html' => __('An unexpected error occurred during HTML processing.'),
              ];
         }
 
-        // Basic cleanup - remove potential markdown code blocks if AI wraps HTML in them
+        // Basic cleanup
         $generatedHtml = preg_replace('/^```(html)?\s*/i', '', $generatedHtml);
         $generatedHtml = preg_replace('/\s*```$/i', '', $generatedHtml);
 
@@ -287,20 +359,43 @@ class AiGenerator
     }
 
     /**
-     * Build the context data string from product/category.
+     * Build the structured context data array from store and product/category.
      *
      * @param string|null $dataSourceType
      * @param int|string|null $sourceId
-     * @return string
+     * @param int $storeId
+     * @return array ['store_context' => string, 'data_source_context' => string]
      */
-    private function buildContextData(?string $dataSourceType, $sourceId): string
+    private function buildContextData(?string $dataSourceType, $sourceId, int $storeId): array
     {
-        $contextData = '';
+        $storeContext = '';
+        $dataSourceContext = '';
+
+        // --- Build Store Context ---
+        try {
+            $store = $this->storeManager->getStore($storeId);
+            $baseUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
+            $locale = $this->scopeConfig->getValue(
+                \Magento\Directory\Helper\Data::XML_PATH_DEFAULT_LOCALE,
+                ScopeInterface::SCOPE_STORE,
+                $storeId
+            );
+            $storeContext .= "Store Name: " . $store->getName() . "\n";
+            $storeContext .= "Base URL: " . $baseUrl . "\n";
+            if ($locale) {
+                $storeContext .= "Locale: " . $locale . "\n";
+            }
+        } catch (NoSuchEntityException $e) {
+            $this->logger->warning('Could not load store context for AiLand generation.', ['store_id' => $storeId]);
+            $storeContext .= "(Note: Could not retrieve context data for Store ID " . $storeId . ")\n";
+        }
+
+        // --- Build Data Source Context ---
         if (!empty($dataSourceType) && !empty($sourceId)) {
             try {
                 switch ($dataSourceType) {
                     case 'product':
-                        $product = $this->productRepository->getById((int)$sourceId);
+                        $product = $this->productRepository->getById((int)$sourceId, false, $storeId);
                         $promptData = [
                             'Product Name' => $product->getName(),
                             'Price' => $product->getPriceInfo()->getPrice('final_price')->getValue(),
@@ -308,19 +403,21 @@ class AiGenerator
                             'Full Description' => $product->getDescription(),
                             'Meta Description' => $product->getMetaDescription()
                         ];
-                        $contextData .= "Context from Product:\n";
                         foreach ($promptData as $key => $value) {
                             if (!empty($value)) {
-                                $contextData .= $key . ": " . strip_tags((string)$value) . "\n";
+                                $dataSourceContext .= $key . ": " . strip_tags((string)$value) . "\n";
                             }
                         }
                         break;
 
                     case 'category':
-                        $category = $this->categoryRepository->get((int)$sourceId);
+                        $category = $this->categoryRepository->get((int)$sourceId, $storeId);
                         $products = $category->getProductCollection()
+                                             ->setStoreId($storeId)
                                              ->addAttributeToSelect('name')
-                                             ->setPageSize(10) // Limit context size
+                                             ->addAttributeToFilter('status', \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED)
+                                             ->addAttributeToFilter('visibility', ['in' => [\Magento\Catalog\Model\Product\Visibility::VISIBILITY_IN_CATALOG, \Magento\Catalog\Model\Product\Visibility::VISIBILITY_BOTH]])
+                                             ->setPageSize(10)
                                              ->setCurPage(1);
                         $productNames = [];
                         foreach ($products as $product) {
@@ -331,46 +428,45 @@ class AiGenerator
                             'Description' => $category->getDescription(),
                             'Products in this category include' => implode(', ', $productNames)
                         ];
-                        $contextData .= "Context from Category:\n";
                         foreach ($promptData as $key => $value) {
                             if (!empty($value)) {
-                                $contextData .= $key . ": " . strip_tags((string)$value) . "\n";
+                                $dataSourceContext .= $key . ": " . strip_tags((string)$value) . "\n";
                             }
                         }
                         break;
                 }
             } catch (NoSuchEntityException $e) {
-                $this->logger->warning('Could not load context data for AiLand generation.', ['type' => $dataSourceType, 'id' => $sourceId]);
-                $contextData .= "(Note: Could not retrieve context data for " . $dataSourceType . " ID " . $sourceId . ")\n";
+                $this->logger->warning('Could not load data source context for AiLand generation.', ['type' => $dataSourceType, 'id' => $sourceId, 'store_id' => $storeId]);
+                $dataSourceContext .= "(Note: Could not retrieve context data for " . $dataSourceType . " ID " . $sourceId . " in Store ID " . $storeId . ")\n";
             }
         }
-        return trim($contextData);
+
+        return [
+            'store_context' => trim($storeContext),
+            'data_source_context' => trim($dataSourceContext)
+        ];
     }
 
     /**
-     * Build the user prompt for the design stage.
+     * Build the user instruction part of the prompt for the design stage.
      *
      * @param string $customPrompt
-     * @param string $contextData
+     * @param array $contextData
      * @param string|null $dataSourceType
      * @return string
      */
-    private function buildDesignUserPrompt(string $customPrompt, string $contextData, ?string $dataSourceType): string
+    private function buildDesignUserPrompt(string $customPrompt, array $contextData, ?string $dataSourceType): string
     {
-        // Get the high-level content goal
-        $contentGoal = $this->getBasePrompt($dataSourceType); // Use the simplified content prompt
+        $basePromptType = !empty($contextData['data_source_context']) ? $dataSourceType : null;
+        $contentGoal = $this->getBasePrompt($basePromptType);
 
-        $userPrompt = "Content Goal: " . $contentGoal . "\n";
+        $userInstructionPrompt = "Content Goal: " . $contentGoal . "\n";
 
         if (!empty($customPrompt)) {
-            $userPrompt .= "User's Custom Instructions: " . $customPrompt . "\n";
+            $userInstructionPrompt .= "User's Custom Instructions: " . $customPrompt . "\n";
         }
 
-        if (!empty($contextData)) {
-            $userPrompt .= "\n" . $contextData;
-        }
-
-        return trim($userPrompt);
+        return trim($userInstructionPrompt);
     }
 
 
@@ -389,24 +485,20 @@ class AiGenerator
         $payload = [
             'model' => $model,
             'messages' => $messages
-            // Add other parameters like temperature, max_tokens if needed
-            // 'temperature' => 0.7,
-            // 'max_tokens' => 1500, // Adjust as needed
         ];
 
         try {
-            $this->logger->debug("OpenRouter Request [$stageIdentifier] Payload: " . $this->jsonSerializer->serialize($payload));
-
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, self::OPENROUTER_API_ENDPOINT);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+             $this->logger->debug("OpenRouter Request [$stageIdentifier] Payload: " . $this->jsonSerializer->serialize($payload));
+             $ch = curl_init();
+             curl_setopt($ch, CURLOPT_URL, self::OPENROUTER_API_ENDPOINT);
+             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $this->jsonSerializer->serialize($payload));
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . $apiKey,
             ]);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 300); // Increased timeout for potentially longer calls
+            curl_setopt($ch, CURLOPT_TIMEOUT, 300);
 
             $responseBody = curl_exec($ch);
             $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -450,7 +542,7 @@ class AiGenerator
 
         } catch (LocalizedException $e) {
             $this->logger->error("OpenRouter API Error [$stageIdentifier]: " . $e->getMessage());
-            throw $e; // Re-throw known exceptions
+            throw $e;
         } catch (\Exception $e) {
             $this->logger->critical("Error calling OpenRouter API [$stageIdentifier]: " . $e->getMessage(), ['exception' => $e]);
             throw new LocalizedException(__("An unexpected error occurred while calling the AI service [$stageIdentifier]: %1", $e->getMessage()));
@@ -458,35 +550,53 @@ class AiGenerator
     }
 
     /**
-     * Get the configured API key.
+     * Get the configured API key for a specific store scope.
      *
+     * @param int $storeId
      * @return string|null
      */
-    private function getApiKey(): ?string
+    private function getApiKey(int $storeId): ?string
     {
         $key = $this->scopeConfig->getValue(
             self::XML_PATH_API_KEY,
-            ScopeInterface::SCOPE_STORE
+            ScopeInterface::SCOPE_STORE,
+            $storeId
         );
         return $key ? $this->encryptor->decrypt($key) : null;
     }
 
      /**
-     * Get the configured Model name.
+     * Get the configured Thinking Model name for a specific store scope.
      *
+     * @param int $storeId
      * @return string|null
      */
-    private function getModel(): ?string
+    private function getThinkingModel(int $storeId): ?string
     {
-        // Read model from config, provide fallback default
         return $this->scopeConfig->getValue(
-            self::XML_PATH_MODEL,
-            ScopeInterface::SCOPE_STORE
-        ) ?: 'qwen/qwq-32b:free'; // Keep fallback, consider if different models are better for design vs html
+            self::XML_PATH_THINKING_MODEL,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        ) ?: self::DEFAULT_THINKING_MODEL;
+    }
+
+     /**
+     * Get the configured Rendering Model name for a specific store scope.
+     *
+     * @param int $storeId
+     * @return string|null
+     */
+    private function getRenderingModel(int $storeId): ?string
+    {
+        return $this->scopeConfig->getValue(
+            self::XML_PATH_RENDERING_MODEL,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        ) ?: self::DEFAULT_RENDERING_MODEL;
     }
 
     /**
-     * Get the CONTENT-focused base prompt instruction from config based on data source type.
+     * Get the CONTENT-focused base prompt instruction based on data source type.
      *
      * @param string|null $dataSourceType
      * @return string
@@ -496,16 +606,23 @@ class AiGenerator
          $configPath = null;
          $defaultPromptFile = 'default_generic_prompt.txt';
 
-         // Try reading from config first
+         switch ($dataSourceType) {
+             case 'product':
+                 $configPath = self::XML_PATH_PRODUCT_PROMPT;
+                 $defaultPromptFile = 'default_product_prompt.txt';
+                 break;
+             case 'category':
+                 $configPath = self::XML_PATH_CATEGORY_PROMPT;
+                 $defaultPromptFile = 'default_category_prompt.txt';
+                 break;
+         }
+
          $prompt = $configPath ? $this->scopeConfig->getValue($configPath, ScopeInterface::SCOPE_STORE) : null;
 
-         // If config is empty, read from the corresponding default file
          if (empty($prompt)) {
              $prompt = $this->getPromptFromFile($defaultPromptFile);
              if (empty($prompt)) {
-                 // Log an error if the default file couldn't be read either
                  $this->logger->error('Could not load default prompt from file: ' . $defaultPromptFile);
-                 // Return a hardcoded fallback to prevent complete failure
                  return 'Generate content based on the provided context.';
              }
          }
@@ -516,8 +633,8 @@ class AiGenerator
      /**
       * Reads a prompt string from a file within the module's etc/prompts directory.
       *
-      * @param string $filename The name of the file (e.g., 'design_system_prompt.txt')
-      * @return string The file content or an empty string if reading fails.
+      * @param string $filename
+      * @return string
       */
      private function getPromptFromFile(string $filename): string
      {
@@ -535,7 +652,73 @@ class AiGenerator
              }
          } catch (FileSystemException | LocalizedException $e) {
              $this->logger->error('Error reading prompt file: ' . $filename . ' - ' . $e->getMessage());
+          }
+          return '';
+      }
+
+     /**
+      * Get Tailwind config content for the given store's theme.
+      *
+      * @param int $storeId
+      * @return string|null
+      */
+     private function getTailwindConfig(int $storeId): ?string
+     {
+         try {
+             $themeId = $this->scopeConfig->getValue(
+                 DesignInterface::XML_PATH_THEME_ID,
+                 ScopeInterface::SCOPE_STORE,
+                 $storeId
+             );
+
+             if (!$themeId) {
+                 $this->logger->info('No theme ID configured for store.', ['store_id' => $storeId]);
+                 return null;
+             }
+
+             $themeCollection = $this->themeCollectionFactory->create();
+             $theme = $themeCollection->getItemById((int)$themeId);
+
+             if (!$theme || !$theme->getId()) {
+                 $this->logger->warning('Could not load theme model for configured ID.', ['theme_id' => $themeId, 'store_id' => $storeId]);
+                 return null;
+             }
+
+             $themePathIdentifier = $theme->getFullPath();
+             if (!$themePathIdentifier) {
+                  $this->logger->warning('Theme model does not have a path identifier.', ['theme_id' => $themeId]);
+                  return null;
+             }
+             $themeDir = $this->componentRegistrar->getPath(ComponentRegistrar::THEME, $themePathIdentifier);
+
+             if (!$themeDir) {
+                 $this->logger->warning('Could not resolve theme directory path using ComponentRegistrar.', ['theme_path_id' => $themePathIdentifier, 'store_id' => $storeId]);
+                 return null;
+             }
+
+             $tailwindConfigPath = $themeDir . '/web/tailwind/tailwind.config.js';
+             $tailwindConfigRelPath = 'web/tailwind/tailwind.config.js'; // Define for logging
+
+             if ($this->fileDriver->isExists($tailwindConfigPath) && $this->fileDriver->isReadable($tailwindConfigPath)) {
+                 $this->logger->info('Found Tailwind config for theme.', ['path' => $tailwindConfigPath, 'store_id' => $storeId]);
+                 return $this->fileDriver->fileGetContents($tailwindConfigPath);
+             } else {
+                 $this->logger->info('Tailwind config not found or not readable for theme.', [
+                     'expected_relative_path' => $tailwindConfigRelPath, // Use defined variable
+                     'resolved_path' => $tailwindConfigPath ?: 'Not Resolved',
+                     'theme_path' => $themeDir, // Log resolved theme dir
+                     'store_id' => $storeId
+                 ]);
+                 return null;
+             }
+         } catch (LocalizedException $e) {
+             $this->logger->error('Error resolving theme or Tailwind config path: ' . $e->getMessage(), ['store_id' => $storeId]);
+         } catch (FileSystemException $e) {
+             $this->logger->error('Filesystem error reading Tailwind config: ' . $e->getMessage(), ['store_id' => $storeId]);
+         } catch (\Exception $e) {
+             $this->logger->error('Unexpected error getting Tailwind config: ' . $e->getMessage(), ['store_id' => $storeId, 'exception' => $e]);
          }
-         return ''; // Return empty string on failure
+
+         return null;
      }
  }

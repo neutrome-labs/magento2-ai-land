@@ -21,6 +21,7 @@ define([
         var $previewIframe = $(config.previewIframe);
         var $hiddenContentArea = $(config.previewArea);
         var $form = $(config.formId);
+        var $storeSwitcher = $(config.storeSwitcherSelector || '#store_switcher_select'); // Add selector, provide default ID guess
         var isGenerating = false; // Flag to prevent multiple simultaneous requests
 
         // Initialize form validation
@@ -94,9 +95,25 @@ define([
             $previewIframe.contents().find('body').html(loadingText); // Show status in iframe
 
             var formData = $form.serializeArray();
+            var storeId = $storeSwitcher.val(); // Get store ID
 
             // Add actionType flag
             formData.push({name: 'action_type', value: actionType});
+            // Add store_id flag if a valid store is selected
+            if (storeId && storeId !== '0') { // Check if storeId is valid (not empty or '0' for 'All Store Views')
+                formData.push({name: 'store_id', value: storeId});
+                console.log('Adding store_id to request:', storeId); // Debug log
+            } else {
+                 console.log('No specific store selected or store_id is 0, not adding to request.'); // Debug log
+                 // Optional: Show an alert if a specific store is required?
+                 // alert({ title: $t('Store Selection Required'), content: $t('Please select a specific store view.') });
+                 // isGenerating = false; // Reset flag
+                 // // Re-enable buttons immediately if validation fails here
+                 // $buttonsToDisable.each(function() { /* ... re-enable logic ... */ });
+                 // $otherButtons.prop('disabled', false).removeClass('disabled');
+                 // return; // Stop processing if store selection is mandatory
+            }
+
 
             $.ajax({
                 url: config.generateUrl,

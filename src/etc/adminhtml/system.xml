@@ -28,18 +28,24 @@
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                     <validate>required-entry</validate>
                 </field>
-                 <field id="model" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Model Name</label>
-                    <comment>Enter the OpenRouter model identifier (e.g., 'openai/gpt-4o', 'google/gemini-pro', 'qwen/qwq-32b:free'). Default: 'qwen/qwq-32b:free'.</comment>
+                <!-- Removed original 'model' field -->
+                <field id="thinking_model" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
+                    <label>Thinking Model</label>
+                    <comment>Model used for generating the technical design plan (Stage 1). Default: 'deepseek/deepseek-r1:free'.</comment>
                     <validate>required-entry</validate>
                 </field>
-                 <field id="product_base_prompt" translate="label comment" type="textarea" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Product Base Prompt</label>
-                    <comment>The base system instruction sent to the AI when generating from a product. Use placeholders like {{PRODUCT_NAME}}, {{PRODUCT_PRICE}}, {{PRODUCT_DESCRIPTION}} if needed (Note: Placeholder replacement is not implemented yet).</comment>
+                <field id="rendering_model" translate="label comment" type="text" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
+                    <label>Rendering Model</label>
+                    <comment>Model used for generating HTML from the design plan (Stage 2) and for improvements. Default: 'deepseek/deepseek-chat-v3-0324:free'.</comment>
+                    <validate>required-entry</validate>
                 </field>
-                 <field id="category_base_prompt" translate="label comment" type="textarea" sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="0">
+                 <field id="product_base_prompt" translate="label comment" type="textarea" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
+                    <label>Product Base Prompt</label>
+                    <comment>The base system instruction sent to the AI when generating from a product. Context data is provided separately.</comment>
+                </field>
+                 <field id="category_base_prompt" translate="label comment" type="textarea" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
                     <label>Category Base Prompt</label>
-                    <comment>The base system instruction sent to the AI when generating from a category. Use placeholders like {{CATEGORY_NAME}}, {{CATEGORY_DESCRIPTION}} if needed (Note: Placeholder replacement is not implemented yet).</comment>
+                    <comment>The base system instruction sent to the AI when generating from a category. Context data is provided separately.</comment>
                 </field>
             </group>
         </section>

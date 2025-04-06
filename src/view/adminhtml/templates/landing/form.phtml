@@ -42,6 +42,29 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
                 </div>
             </div>
 
+            <!-- Custom Store Selector Field -->
+            <div class="admin__field _required"> <!-- Making it required as generator needs it -->
+                <label class="admin__field-label" for="store_id"><span><?= $block->escapeHtml(__('Store View')) ?></span></label>
+                <div class="admin__field-control">
+                    <?php
+                        // Instantiate and render the custom block directly
+                        // Note: Ideally, this block would be added via layout XML for better practice,
+                        // but direct instantiation is simpler for this modification.
+                        $storeSelectorBlock = $block->getLayout()->createBlock(
+                            \NeutromeLabs\AiLand\Block\Adminhtml\Form\Field\StoreSelector::class
+                        );
+                        echo $storeSelectorBlock
+                            ->setName('store_id') // Set the name attribute for form submission
+                            ->setId('store_id')   // Set the ID attribute for JS targeting
+                            ->setClass('admin__control-select') // Standard Magento select class
+                            ->toHtml();
+                    ?>
+                     <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('Select the Store View context for generation.')) ?></span>
+                    </div>
+                </div>
+            </div>
+
             <div class="admin__field">
                 <label class="admin__field-label" for="custom_prompt"><span><?= $block->escapeHtml(__('Custom Prompt')) ?></span></label>
                 <div class="admin__field-control">
@@ -137,7 +160,8 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
                 "designPlanArea": "#generated_design_plan",
                 "previewArea": "#generated_content",
                 "previewIframe": "#generated_content_preview",
-                "formId": "#ailand_landing_form"
+                "formId": "#ailand_landing_form",
+                "storeSwitcherSelector": "#store_id"
             }
         }
     }
