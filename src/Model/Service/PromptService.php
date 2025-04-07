@@ -26,13 +26,7 @@ use Psr\Log\LoggerInterface;
  */
 class PromptService
 {
-    // Config paths for base prompts
-    const XML_PATH_PRODUCT_PROMPT = 'ailand/openrouter/product_base_prompt';
-    const XML_PATH_CATEGORY_PROMPT = 'ailand/openrouter/category_base_prompt';
-    const XML_PATH_GENERIC_PROMPT = 'ailand/openrouter/generic_base_prompt';
-    const XML_PATH_PRODUCT_INTERACTIVE_PROMPT = 'ailand/openrouter/product_interactive_prompt';
-    const XML_PATH_CATEGORY_INTERACTIVE_PROMPT = 'ailand/openrouter/category_interactive_prompt';
-    const XML_PATH_GENERIC_INTERACTIVE_PROMPT = 'ailand/openrouter/generic_interactive_prompt';
+    // Removed config path constants for prompts
     const MODULE_NAME = 'NeutromeLabs_AiLand'; // Module name for directory reading
 
     /**
@@ -102,39 +96,7 @@ class PromptService
         return '';
     }
 
-    /**
-     * Get the CONTENT-focused base prompt instruction based on data source type.
-     *
-     * @param string|null $dataSourceType
-     * @param int $storeId
-     * @return string
-     */
-    public function getBasePrompt(?string $dataSourceType, int $storeId, bool $generateInteractive = false): string
-    {
-        $configPath = null;
-        $defaultPrompt = 'Generate content based on the provided context.';
-
-        switch ($dataSourceType) {
-            case 'product':
-                $configPath = $generateInteractive ? self::XML_PATH_PRODUCT_INTERACTIVE_PROMPT : self::XML_PATH_PRODUCT_PROMPT;
-                break;
-            case 'category':
-                $configPath = $generateInteractive ? self::XML_PATH_CATEGORY_INTERACTIVE_PROMPT : self::XML_PATH_CATEGORY_PROMPT;
-                break;
-            default:
-                $configPath = $generateInteractive ? self::XML_PATH_GENERIC_INTERACTIVE_PROMPT : self::XML_PATH_GENERIC_PROMPT;
-                break;
-        }
-
-        $prompt = $configPath ? $this->scopeConfig->getValue($configPath, ScopeInterface::SCOPE_STORE, $storeId) : null;
-
-        if (empty($prompt)) {
-            $this->logger->error('Missing required prompt configuration for: ' . ($dataSourceType ?? 'generic'));
-            return $defaultPrompt;
-        }
-
-        return trim($prompt);
-    }
+    // Removed getBasePrompt method
 
     /**
      * Adds a reference image URL to the API message array if provided.

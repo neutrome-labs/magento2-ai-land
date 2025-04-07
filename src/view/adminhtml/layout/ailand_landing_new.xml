@@ -20,6 +20,9 @@
             <!-- Add a standard block to render the PHTML form -->
             <block class="Magento\Backend\Block\Template" name="ailand_landing_form_container"
                    template="NeutromeLabs_AiLand::landing/form.phtml">
+                <!-- Add Prompt Templates block to provide data to JS -->
+                <block class="NeutromeLabs\AiLand\Block\Adminhtml\Landing\PromptTemplates"
+                       name="ailand.prompt.templates" as="prompt_templates"/>
                 <!-- We can add child blocks here if needed for specific form parts like buttons -->
                 <block class="Magento\Backend\Block\Widget\Button" name="ailand.generate.button" as="generate_button">
                     <arguments>
@@ -41,9 +44,9 @@
                 </block>
                 <block class="Magento\Backend\Block\Widget\Button" name="ailand.save.button" as="save_button">
                     <arguments>
-                        <argument name="label" xsi:type="string" translate="true">Save as CMS Block</argument>
-                        <argument name="class" xsi:type="string">primary save-cms-block
-                        </argument> <!-- Class for JS hook -->
+                        <argument name="label" xsi:type="string" translate="true">Save</argument> <!-- Generic Save Label -->
+                        <argument name="class" xsi:type="string">primary save
+                        </argument> <!-- Generic Save Class -->
                         <argument name="id" xsi:type="string">save-button</argument>
                         <argument name="type" xsi:type="string">submit</argument>
                     </arguments>

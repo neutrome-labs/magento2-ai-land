@@ -173,7 +173,7 @@ class ApiKeyStatus extends Field
 
         // Add Top-up Link
         $html .= sprintf(
-            '<div style="margin-top: 10px;">%s <a href="%s" target="_blank">%s</a></div>',
+            '<div style="margin-top: 10px;">%s<br/><a href="%s" target="_blank">%s</a></div>',
             $this->escaper->escapeHtml(__('Manage your API key and balance on the OpenRouter website.')),
             $this->escaper->escapeUrl($openRouterCreditsUrl), // Use credits URL for top-up/management
             $this->escaper->escapeHtml(__('Manage Account / Top Up'))
@@ -218,9 +218,8 @@ class ApiKeyStatus extends Field
         }
 
         return sprintf(
-            '<div><strong>%s (%s):</strong><br/>%s</div>',
+            '<div><strong>%s:</strong><br/>%s</div>',
             $this->escaper->escapeHtml($label),
-            $this->escaper->escapeHtml($modelId),
             $pricingHtml // Already escaped within the logic
         );
     }

@@ -73,8 +73,7 @@ class DesignGenerator
      * @param string $apiKey
      * @param string $thinkingModel
      * @param string $customPrompt
-     * @param array $contextData ['store_context' => string, 'data_source_context' => string]
-     * @param string|null $dataSourceType ('product', 'category', or null)
+     * @param array $contextData ['store_context' => string, 'data_source_context' => string] (data_source_context might be empty)
      * @param int $storeId
      * @param string|null $referenceImageUrl
      * @param bool $generateInteractive
@@ -86,7 +85,7 @@ class DesignGenerator
         string  $thinkingModel,
         string  $customPrompt,
         array   $contextData,
-        ?string $dataSourceType,
+        // string  $generationGoal, // Removed parameter
         int     $storeId,
         ?string $referenceImageUrl,
         bool    $generateInteractive
@@ -95,57 +94,34 @@ class DesignGenerator
         $this->logger->info('Starting AI Generation Stage 1: Technical Design', ['store_id' => $storeId]);
         $stageIdentifier = 'Stage 1 (Design)'; // Define for logging in helpers
 
-        // Use PromptService to get prompts
-        $designUserPrompt = $this->buildDesignUserPrompt($customPrompt, $contextData, $dataSourceType, $storeId, $generateInteractive); // Keep internal build method for now
-        $designSystemPrompt = $this->promptService->getPromptFromFile('design_system_prompt.txt'); // Use PromptService
+        // Fetch the generic system prompt for design stage
+        $designSystemPrompt = $this->promptService->getPromptFromFile('design_system_prompt.txt');
         if (!$designSystemPrompt) {
-            throw new LocalizedException(__('Could not load design system prompt via PromptService.'));
+            throw new LocalizedException(__('Could not load the generic design system prompt.'));
         }
 
+        // Prepare messages for the API call
         $designMessages = [
             ['role' => 'system', 'content' => $designSystemPrompt]
         ];
+        // Add store context if available
         if (!empty($contextData['store_context'])) {
             $designMessages[] = ['role' => 'user', 'content' => "Store Context:\n" . $contextData['store_context']];
         }
-        if (!empty($contextData['data_source_context'])) {
-            $designMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
-        }
+        // Add the main user prompt (which now contains all instructions)
+        $designMessages[] = ['role' => 'user', 'content' => $customPrompt];
 
-        // Add the final user prompt (goal + custom instructions)
-        $designMessages[] = ['role' => 'user', 'content' => $designUserPrompt];
+        // Add reference image if provided
         $this->promptService->addReferenceImageToMessages($designMessages, $referenceImageUrl, $stageIdentifier);
 
-        $technicalDesign = $this->apiClient->callOpenRouterApi($apiKey, $thinkingModel, $designMessages, 'Stage 1 (Design)');
+        // Call the API
+        $technicalDesign = $this->apiClient->callOpenRouterApi($apiKey, $thinkingModel, $designMessages, $stageIdentifier);
         $this->logger->info('Completed AI Generation Stage 1.');
 
         return $technicalDesign;
     }
 
-    /**
-     * Build the user instruction part of the prompt for the design stage.
-     *
-     * @param string $customPrompt
-     * @param array $contextData
-     * @param string|null $dataSourceType
-     * @param int $storeId
-     * @return string
-     */
-    private function buildDesignUserPrompt(string $customPrompt, array $contextData, ?string $dataSourceType, int $storeId, bool $generateInteractive = false): string
-    {
-        $basePromptType = !empty($contextData['data_source_context']) ? $dataSourceType : null;
-        // Use PromptService to get base prompt
-        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive); // Use PromptService
-
-        $userInstructionPrompt = "Content Goal: " . $contentGoal . "\n";
-
-        if (!empty($customPrompt)) {
-            $userInstructionPrompt .= "User's Custom Instructions: " . $customPrompt . "\n";
-        }
-
-        return trim($userInstructionPrompt);
-    }
-
+    // Removed buildDesignUserPrompt method as it's no longer needed
     // Removed getBasePrompt method
     // Removed getPromptFromFile method
 }

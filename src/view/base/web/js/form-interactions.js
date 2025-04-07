@@ -11,10 +11,18 @@ define([
     return function (config, element) {
         console.log('AiLand form-interactions initialized with config:', config); // Debug log
 
-        var $dataSourceType = $(config.dataSourceTypeSelector);
-        var $productIdContainer = $(config.productIdFieldContainer);
-        var $categoryIdContainer = $(config.categoryIdFieldContainer);
-        // Use class selectors now
+        // New selectors
+        var $saveAsType = $(config.saveAsTypeSelector);
+        var $promptTemplateSelector = $(config.promptTemplateSelector);
+        var $customPrompt = $(config.customPromptSelector);
+        var $titleLabel = $(config.titleLabelSelector);
+        var $identifierLabel = $(config.identifierLabelSelector);
+        var promptTemplates = config.promptTemplatesJson || {}; // Get templates data
+        var $dataSourceType = $(config.dataSourceTypeSelector); // Re-added
+        var $productIdContainer = $(config.productIdFieldContainer); // Re-added
+        var $categoryIdContainer = $(config.categoryIdFieldContainer); // Re-added
+
+        // Existing selectors
         var generateButtonClass = config.generateButtonClass;
         var improveButtonClass = config.improveButtonClass;
         var $designPlanArea = $(config.designPlanArea);
@@ -42,15 +50,11 @@ define([
             }
         });
 
-
-        // Function to toggle visibility of Product/Category ID fields
+        // Function to toggle visibility of Product/Category ID fields (Re-added)
         function toggleSourceFields() {
             var selectedType = $dataSourceType.val();
-            $productIdContainer.hide();
-            $categoryIdContainer.hide();
-            // Clear values when hidden? Optional.
-            // $productIdContainer.find('input').val('');
-            // $categoryIdContainer.find('input').val('');
+            $productIdContainer.hide().find('input').val(''); // Hide and clear value
+            $categoryIdContainer.hide().find('input').val(''); // Hide and clear value
 
             if (selectedType === 'product') {
                 $productIdContainer.show();
@@ -59,8 +63,38 @@ define([
             }
         }
 
+        // Function to populate prompt template selector
+        function populateTemplateSelector() {
+            $.each(promptTemplates, function(key, template) {
+                if (template.label) {
+                    var $option = $('<option></option>').val(key).text(template.label);
+                    $promptTemplateSelector.append($option);
+                }
+            });
+        }
+
+        // Function to load selected template into custom prompt field
+        function loadSelectedTemplate() {
+            var selectedKey = $promptTemplateSelector.val();
+            if (selectedKey && promptTemplates[selectedKey] && promptTemplates[selectedKey].prompt) {
+                $customPrompt.val(promptTemplates[selectedKey].prompt).trigger('change'); // Set value and trigger change
+            }
+        }
+
+        // Function to update Title/Identifier labels based on Save As type
+        function updateLabels() {
+            var saveType = $saveAsType.val();
+            if (saveType === 'page') {
+                $titleLabel.text($t('CMS Page Title'));
+                $identifierLabel.text($t('CMS Page Identifier'));
+            } else { // Default to block or if empty
+                $titleLabel.text($t('CMS Block Title'));
+                $identifierLabel.text($t('CMS Block Identifier'));
+            }
+        }
+
         // Function to handle AJAX call for generation or improvement
-        function processRequest(actionType) { // Renamed function, added actionType
+        function processRequest(actionType) {
             if (isGenerating) {
                 return; // Prevent multiple clicks while processing
             }
@@ -146,13 +180,18 @@ define([
         }
 
         // Initial setup
-        toggleSourceFields(); // Set initial visibility
+        populateTemplateSelector();
+        updateLabels();
+        toggleSourceFields(); // Set initial visibility for data source fields
 
         // Event listeners using delegation from the form element
-        $form.on('change', config.dataSourceTypeSelector, toggleSourceFields);
-        // Use class selectors for button clicks
+        $form.on('change', config.saveAsTypeSelector, updateLabels);
+        $form.on('change', config.promptTemplateSelector, loadSelectedTemplate);
+        $form.on('change', config.dataSourceTypeSelector, toggleSourceFields); // Re-added listener
+
+        // Button clicks
         $form.on('click', generateButtonClass, function (e) {
-            e.preventDefault(); // Prevent default if it's somehow not a button type
+            e.preventDefault();
             processRequest('generate');
         });
         $form.on('click', improveButtonClass, function (e) {

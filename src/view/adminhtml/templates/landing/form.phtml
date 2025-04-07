@@ -13,6 +13,11 @@ use NeutromeLabs\AiLand\Block\Adminhtml\Form\Field\StoreSelector;
 $generateUrl = $block->getUrl('ailand/landing/generate'); // URL for AJAX generation
 $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submission
 
+// Get prompt templates data from the child block added in layout
+/** @var \NeutromeLabs\AiLand\Block\Adminhtml\Landing\PromptTemplates $promptTemplatesBlock */
+$promptTemplatesBlock = $block->getChildBlock('prompt_templates');
+$promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptTemplatesJson() : '{}';
+
 ?>
 <div class="ailand-form-container">
     <form id="ailand_landing_form" action="<?= $block->escapeUrl($saveUrl) ?>" method="post">
@@ -73,14 +78,43 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
                 </div>
             </div>
 
+            <!-- New Save As Type Field -->
+            <div class="admin__field _required">
+                <label class="admin__field-label" for="save_as_type"><span><?= $block->escapeHtml(__('Save As')) ?></span></label>
+                <div class="admin__field-control">
+                    <select id="save_as_type" name="save_as_type" class="admin__control-select" data-validate="{required:true}">
+                        <option value=""><?= $block->escapeHtml(__('-- Please Select --')) ?></option>
+                        <option value="page"><?= $block->escapeHtml(__('CMS Page')) ?></option>
+                        <option value="block"><?= $block->escapeHtml(__('CMS Block')) ?></option>
+                    </select>
+                    <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('Select whether to save the result as a CMS Page or a CMS Block.')) ?></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Predefined Prompt Selector -->
             <div class="admin__field">
+                <label class="admin__field-label" for="predefined_prompt_selector"><span><?= $block->escapeHtml(__('Load Prompt Template')) ?></span></label>
+                <div class="admin__field-control">
+                    <select id="predefined_prompt_selector" name="predefined_prompt_selector" class="admin__control-select">
+                        <option value=""><?= $block->escapeHtml(__('-- Select a template to load --')) ?></option>
+                        <!-- Options will be populated by JS -->
+                    </select>
+                     <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('Selecting a template will replace the content of the Custom Prompt field below.')) ?></span>
+                    </div>
+               </div>
+            </div>
+
+            <div class="admin__field _required"> <!-- Making prompt required now -->
                 <label class="admin__field-label"
                        for="custom_prompt"><span><?= $block->escapeHtml(__('Custom Prompt')) ?></span></label>
                 <div class="admin__field-control">
                     <textarea id="custom_prompt" name="custom_prompt" class="admin__control-textarea"
-                              rows="8"></textarea>
+                              rows="15" data-validate="{required:true}"></textarea> <!-- Increased rows and made required -->
                     <div class="admin__field-note">
-                        <span><?= $block->escapeHtml(__('Enter the detailed prompt for the AI. Optionally select a Product or Category below for additional context.')) ?></span>
+                        <span><?= $block->escapeHtml(__('Enter the detailed prompt for the AI. Use the template loader above or write your own.')) ?></span>
                     </div>
                 </div>
             </div>
@@ -111,17 +145,18 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
                 </div>
             </div>
 
-            <div class="admin__field">
+            <!-- Re-added Data Source Fields -->
+             <div class="admin__field">
                 <label class="admin__field-label"
-                       for="data_source_type"><span><?= $block->escapeHtml(__('Data Source Type')) ?></span></label>
+                       for="data_source_type"><span><?= $block->escapeHtml(__('Data Source Context (Optional)')) ?></span></label>
                 <div class="admin__field-control">
-                    <select id="data_source_type" name="data_source_type" class="admin__control-select"
-                            data-validate="{required:true}">
+                    <select id="data_source_type" name="data_source_type" class="admin__control-select">
+                        <option value=""><?= $block->escapeHtml(__('-- None --')) ?></option>
                         <option value="product"><?= $block->escapeHtml(__('Product')) ?></option>
                         <option value="category"><?= $block->escapeHtml(__('Category')) ?></option>
                     </select>
                     <div class="admin__field-note">
-                        <span><?= $block->escapeHtml(__('Optionally select a Product or Category to provide additional context to the AI along with your prompt.')) ?></span>
+                        <span><?= $block->escapeHtml(__('Optionally select a Product or Category to provide additional context data to the AI along with your prompt.')) ?></span>
                     </div>
                 </div>
             </div>
@@ -197,9 +232,15 @@ $saveUrl = $block->getUrl('ailand/landing/save');       // URL for form submissi
         "*": {
             "NeutromeLabs_AiLand/js/form-interactions": {
                 "generateUrl": "<?= $block->escapeJs($block->escapeUrl($generateUrl)) ?>",
+                "saveAsTypeSelector": "#save_as_type",
+                "promptTemplateSelector": "#predefined_prompt_selector",
+                "customPromptSelector": "#custom_prompt",
+                "promptTemplatesJson": <?= /* @noEscape */ $promptTemplatesJson ?>,
                 "dataSourceTypeSelector": "#data_source_type",
                 "productIdFieldContainer": "#product_id_field",
                 "categoryIdFieldContainer": "#category_id_field",
+                "titleLabelSelector": "label[for='title'] span",
+                "identifierLabelSelector": "label[for='identifier'] span",
                 "generateButtonClass": ".generate-ai-content-button",
                 "improveButtonClass": ".improve-ai-content-button",
                 "designPlanArea": "#generated_design_plan",

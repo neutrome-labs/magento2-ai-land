@@ -57,20 +57,7 @@
                     </comment>
                     <validate>required-entry</validate>
                 </field>
-                <field id="product_base_prompt" translate="label comment" type="textarea" sortOrder="30"
-                       showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
-                    <label>Product Base Prompt</label>
-                    <comment>The base system instruction sent to the AI when generating from a product. Context data is
-                        provided separately.
-                    </comment>
-                </field>
-                <field id="category_base_prompt" translate="label comment" type="textarea" sortOrder="40"
-                       showInDefault="1" showInWebsite="1" showInStore="1"> <!-- Allow store scope -->
-                    <label>Category Base Prompt</label>
-                    <comment>The base system instruction sent to the AI when generating from a category. Context data is
-                        provided separately.
-                    </comment>
-                </field>
+                <!-- Removed all prompt configuration fields -->
             </group>
         </section>
     </system>

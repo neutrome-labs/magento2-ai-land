@@ -67,7 +67,8 @@ class Generate extends Action implements HttpPostActionInterface
         $result = $this->resultJsonFactory->create();
         $response = ['success' => false, 'message' => __('An error occurred.')];
 
-        if (!$this->getRequest()->isPost() || !$this->getRequest()->isAjax()) {
+        // Use isXmlHttpRequest() for AJAX check
+        if (!$this->getRequest()->isPost() || !$this->getRequest()->isXmlHttpRequest()) {
             $response['message'] = __('Invalid request type.');
             return $result->setData($response);
         }
@@ -75,9 +76,9 @@ class Generate extends Action implements HttpPostActionInterface
         try {
             // Retrieve parameters from POST request
             $customPrompt = $this->getRequest()->getParam('custom_prompt');
-            $dataSourceType = $this->getRequest()->getParam('data_source_type');
-            $productId = $this->getRequest()->getParam('product_id');
-            $categoryId = $this->getRequest()->getParam('category_id');
+            $dataSourceType = $this->getRequest()->getParam('data_source_type'); // Re-added
+            $productId = $this->getRequest()->getParam('product_id'); // Re-added
+            $categoryId = $this->getRequest()->getParam('category_id'); // Re-added
             $designPlan = $this->getRequest()->getParam('generated_design_plan');
             $currentContent = $this->getRequest()->getParam('generated_content');
             $actionType = $this->getRequest()->getParam('action_type', 'generate');
@@ -85,40 +86,37 @@ class Generate extends Action implements HttpPostActionInterface
             $referenceImageUrl = $this->getRequest()->getParam('reference_image_url'); // Get image URL
             $generateInteractive = (bool)$this->getRequest()->getParam('generate_interactive', false); // Get checkbox state
 
-            // Validate store_id - it's now required by the generator
+            // Validate store_id
             if (empty($storeId) || !is_numeric($storeId) || (int)$storeId <= 0) {
                 throw new LocalizedException(__('A valid Store View must be selected.'));
             }
             $storeId = (int)$storeId; // Cast to integer
 
+            // Removed generation_goal validation
+
             $response['design'] = $designPlan; // Pass design plan to the response
             $response['html'] = $currentContent; // Pass current content to the response
 
+            // Determine sourceId based on dataSourceType (Re-added)
             $sourceId = null;
-            if ($dataSourceType === 'product') {
-                if (empty($productId)) {
-                    throw new LocalizedException(__('Product ID is required when Product is selected as the data source.'));
-                }
+            if ($dataSourceType === 'product' && !empty($productId)) {
                 $sourceId = $productId;
-            } elseif ($dataSourceType === 'category') {
-                if (empty($categoryId)) {
-                    throw new LocalizedException(__('Category ID is required when Category is selected as the data source.'));
-                }
+            } elseif ($dataSourceType === 'category' && !empty($categoryId)) {
                 $sourceId = $categoryId;
             }
             // If dataSourceType is empty or 'none', sourceId remains null.
 
-            // Pass the design plan to the generator for the 'improve' action
+            // Pass the design plan and context data to the generator
             $generationResult = $this->aiGenerator->generate(
                 $customPrompt,
                 $actionType,
-                $dataSourceType,
-                $sourceId,
                 $storeId,
                 $designPlan,
                 $currentContent,
-                $referenceImageUrl, // Pass image URL here
-                $generateInteractive // Pass interactive flag here
+                $referenceImageUrl,
+                $generateInteractive,
+                $dataSourceType, // Pass context type
+                $sourceId        // Pass context ID
             );
 
             $response = [

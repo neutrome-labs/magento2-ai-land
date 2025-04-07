@@ -70,10 +70,10 @@ class HtmlGenerator
      * @param string $apiKey
      * @param string $renderingModel
      * @param string $technicalDesign
-     * @param array $contextData ['store_context' => string, 'data_source_context' => string]
+     * @param array $contextData ['store_context' => string, 'data_source_context' => string] (data_source_context might be empty)
      * @param int $storeId
      * @param string|null $referenceImageUrl
-     * @param bool $generateInteractive
+     * @param bool $generateInteractive (Passed for context, but doesn't select prompt)
      * @return string Generated HTML
      * @throws LocalizedException
      */
@@ -84,7 +84,7 @@ class HtmlGenerator
         array   $contextData,
         int     $storeId,
         ?string $referenceImageUrl,
-        bool    $generateInteractive
+        bool    $generateInteractive // Keep for potential context within prompt
     ): string
     {
         $this->logger->info('Starting AI Generation Stage 2: HTML Generation', ['store_id' => $storeId]);
@@ -107,13 +107,14 @@ class HtmlGenerator
             $htmlMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
         }
 
-        // Add base prompt content goal
-        $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
-        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
-        $htmlMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
+        // Removed base prompt / content goal logic
         $htmlMessages[] = ['role' => 'user', 'content' => "Technical Design Plan:\n" . $technicalDesign];
         if ($tailwindConfig) {
             $htmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration:\n```javascript\n" . $tailwindConfig . "\n```"];
+        }
+        // Add interactive flag as context if needed
+        if ($generateInteractive) {
+             $htmlMessages[] = ['role' => 'user', 'content' => "Note: Generate interactive elements using Magento GraphQL where appropriate based on the design plan."];
         }
 
         // Use PromptService to add reference image
@@ -133,10 +134,10 @@ class HtmlGenerator
      * @param string $renderingModel
      * @param string $customPrompt User's improvement request.
      * @param string|null $currentContent The existing HTML.
-     * @param array $contextData ['store_context' => string, 'data_source_context' => string]
+     * @param array $contextData ['store_context' => string, 'data_source_context' => string] (data_source_context might be empty)
      * @param int $storeId
      * @param string|null $referenceImageUrl
-     * @param bool $generateInteractive
+     * @param bool $generateInteractive (Passed for context)
      * @return string Improved HTML
      * @throws LocalizedException
      */
@@ -148,7 +149,7 @@ class HtmlGenerator
         array   $contextData,
         int     $storeId,
         ?string $referenceImageUrl,
-        bool    $generateInteractive
+        bool    $generateInteractive // Keep for potential context within prompt
     ): string
     {
         $this->logger->info('Performing standard HTML improvement.', ['store_id' => $storeId]);
@@ -178,12 +179,12 @@ class HtmlGenerator
             $improveMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
         }
 
-        // Add base prompt content goal
-        $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
-        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
-        $improveMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
-
+        // Removed base prompt / content goal logic
         $improveMessages[] = ['role' => 'user', 'content' => "User's Improvement Request:\n" . $customPrompt];
+        // Add interactive flag as context if needed
+        if ($generateInteractive) {
+             $improveMessages[] = ['role' => 'user', 'content' => "Note: Ensure any interactive elements use Magento GraphQL where appropriate."];
+        }
 
         // Use PromptService to add reference image
         $this->promptService->addReferenceImageToMessages($improveMessages, $referenceImageUrl, $stageIdentifier);
@@ -202,10 +203,10 @@ class HtmlGenerator
      * @param string $renderingModel
      * @param string $designPlan The existing technical design.
      * @param string $customPrompt Additional instructions for this attempt.
-     * @param array $contextData ['store_context' => string, 'data_source_context' => string]
+     * @param array $contextData ['store_context' => string, 'data_source_context' => string] (data_source_context might be empty)
      * @param int $storeId
      * @param string|null $referenceImageUrl
-     * @param bool $generateInteractive
+     * @param bool $generateInteractive (Passed for context)
      * @return string Generated HTML
      * @throws LocalizedException
      */
@@ -217,7 +218,7 @@ class HtmlGenerator
         array   $contextData,
         int     $storeId,
         ?string $referenceImageUrl,
-        bool    $generateInteractive
+        bool    $generateInteractive // Keep for potential context within prompt
     ): string
     {
         $this->logger->info('Retrying Stage 2 HTML generation using existing design plan.', ['store_id' => $storeId]);
@@ -249,13 +250,13 @@ class HtmlGenerator
             $retryHtmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
         }
 
-        // Add base prompt content goal
-        $basePromptType = !empty($contextData['data_source_context']) ? $contextData['data_source_type'] ?? null : null;
-        $contentGoal = $this->promptService->getBasePrompt($basePromptType, $storeId, $generateInteractive);
-        $retryHtmlMessages[] = ['role' => 'user', 'content' => "Content Goal: " . $contentGoal];
-
+        // Removed base prompt / content goal logic
         if (!empty($customPrompt)) {
             $retryHtmlMessages[] = ['role' => 'user', 'content' => "Additional User Instructions for this attempt:\n" . $customPrompt];
+        }
+        // Add interactive flag as context if needed
+        if ($generateInteractive) {
+             $retryHtmlMessages[] = ['role' => 'user', 'content' => "Note: Generate interactive elements using Magento GraphQL where appropriate based on the design plan."];
         }
 
         // Use PromptService to add reference image

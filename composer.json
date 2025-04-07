@@ -1,5 +1,5 @@
 {
-    "name": "neutromelabs/module-ailand",
+    "name": "neutrome-labs/magento2-ai-land",
     "description": "Magento 2 module for AI-powered landing page generation.",
     "type": "magento2-module",
     "version": "1.0.0",

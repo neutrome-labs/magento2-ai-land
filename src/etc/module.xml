@@ -10,7 +10,7 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
-    <module name="NeutromeLabs_AiLand" setup_version="1.0.0">
+    <module name="NeutromeLabs_AiLand">
         <sequence>
             <!-- Dependencies, e.g., Magento_Cms for CMS Block interaction -->
             <module name="Magento_Backend"/>
