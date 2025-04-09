@@ -72,6 +72,7 @@ class HtmlGenerator
      * @param int $storeId
      * @param string|null $referenceImageUrl
      * @param bool $generateInteractive (Passed for context, but doesn't select prompt)
+     * @param string|null $stylingReferenceUrl // Added
      * @return string Generated HTML
      * @throws LocalizedException
      */
@@ -80,9 +81,13 @@ class HtmlGenerator
         array   $contextData,
         int     $storeId,
         ?string $referenceImageUrl,
-        bool    $generateInteractive // Keep for potential context within prompt
+        bool    $generateInteractive, // Keep for potential context within prompt
+        ?string $stylingReferenceUrl // Added
     ): string
     {
+        // Enrich context with styling HTML (fetches URL, handles default logic)
+        $this->promptService->enrichContextWithStylingHtml($contextData, $stylingReferenceUrl, $storeId);
+
         // Use PromptService and ThemeService
         $htmlSystemPrompt = $this->promptService->getPromptFromFile('html_system_prompt.txt'); // Use PromptService
         if (!$htmlSystemPrompt) {
@@ -98,6 +103,10 @@ class HtmlGenerator
         }
         if (!empty($contextData['data_source_context'])) {
             $htmlMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
+        }
+        // Add styling reference HTML if available
+        if (!empty($contextData['styling_reference_html'])) {
+            $htmlMessages[] = ['role' => 'user', 'content' => "Styling Reference HTML:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
         }
 
         // Removed base prompt / content goal logic
@@ -134,6 +143,7 @@ class HtmlGenerator
      * @param int $storeId
      * @param string|null $referenceImageUrl
      * @param bool $generateInteractive (Passed for context)
+     * @param string|null $stylingReferenceUrl // Added
      * @return string Improved HTML
      * @throws LocalizedException
      */
@@ -143,9 +153,13 @@ class HtmlGenerator
         array   $contextData,
         int     $storeId,
         ?string $referenceImageUrl,
-        bool    $generateInteractive // Keep for potential context within prompt
+        bool    $generateInteractive, // Keep for potential context within prompt
+        ?string $stylingReferenceUrl // Added
     ): string
     {
+        // Enrich context with styling HTML (fetches URL, handles default logic)
+        $this->promptService->enrichContextWithStylingHtml($contextData, $stylingReferenceUrl, $storeId);
+
         if (empty($customPrompt)) {
             throw new LocalizedException(__('An improvement instruction is required in the prompt field when improving content.'));
         }
@@ -164,6 +178,10 @@ class HtmlGenerator
         }
         if (!empty($contextData['data_source_context'])) {
             $improveMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
+        }
+        // Add styling reference HTML if available
+        if (!empty($contextData['styling_reference_html'])) {
+            $improveMessages[] = ['role' => 'user', 'content' => "Styling Reference HTML (NOTE: this are not available on preview. Use for reference only):\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
         }
         $improveMessages[] = ['role' => 'user', 'content' => "Current HTML Block:\n" . ($currentContent ?: '(empty)')];
         if ($tailwindConfig) {
@@ -201,6 +219,7 @@ class HtmlGenerator
      * @param int $storeId
      * @param string|null $referenceImageUrl
      * @param bool $generateInteractive (Passed for context)
+     * @param string|null $stylingReferenceUrl // Added
      * @return string Generated HTML
      * @throws LocalizedException
      */
@@ -210,9 +229,13 @@ class HtmlGenerator
         array   $contextData,
         int     $storeId,
         ?string $referenceImageUrl,
-        bool    $generateInteractive // Keep for potential context within prompt
+        bool    $generateInteractive, // Keep for potential context within prompt
+        ?string $stylingReferenceUrl // Added
     ): string
     {
+        // Enrich context with styling HTML (fetches URL, handles default logic)
+        $this->promptService->enrichContextWithStylingHtml($contextData, $stylingReferenceUrl, $storeId);
+
         if (empty($customPrompt)) {
             $this->logger->info('No specific improvement prompt provided for retry, generating based on design.'); // Keep this info log
         } else {
@@ -233,6 +256,10 @@ class HtmlGenerator
         }
         if (!empty($contextData['data_source_context'])) {
             $retryHtmlMessages[] = ['role' => 'user', 'content' => "Data Source Context:\n" . $contextData['data_source_context']];
+        }
+        // Add styling reference HTML if available
+        if (!empty($contextData['styling_reference_html'])) {
+            $retryHtmlMessages[] = ['role' => 'user', 'content' => "Styling Reference HTML:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
         }
         $retryHtmlMessages[] = ['role' => 'user', 'content' => "Technical Design Plan:\n" . $designPlan];
         if ($tailwindConfig) {

@@ -20,7 +20,7 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
 
 ?>
 <div class="ailand-form-container">
-    <form id="ailand_landing_form" action="<?= $block->escapeUrl($saveUrl) ?>" method="post">
+    <form id="ailand_landing_form" action="<?= $block->escapeUrl($saveUrl) ?>" method="post" target="_blank"> <!-- Added target="_blank" -->
         <?= $block->getBlockHtml('formkey') ?> <!-- Add form key for security -->
 
         <!-- Buttons at the top -->
@@ -32,10 +32,28 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
             </div>
         </div>
 
+        <!-- Output Settings Group -->
         <div class="admin__fieldset">
+            <legend class="admin__legend"><span><?= $block->escapeHtml(__('Output Settings')) ?></span></legend>
+            <br>
+
+            <div class="admin__field _required">
+                <label class="admin__field-label" for="save_as_type"><span><?= $block->escapeHtml(__('Save As (CMS Entity Type)')) ?></span></label>
+                <div class="admin__field-control">
+                    <select id="save_as_type" name="save_as_type" class="admin__control-select" data-validate="{required:true}">
+                        <option value=""><?= $block->escapeHtml(__('-- Please Select --')) ?></option>
+                        <option value="page"><?= $block->escapeHtml(__('CMS Page')) ?></option>
+                        <option value="block" selected><?= $block->escapeHtml(__('CMS Block')) ?></option> <!-- Set Block as default -->
+                    </select>
+                    <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('Select whether to save the result as a CMS Page or a CMS Block.')) ?></span>
+                    </div>
+                </div>
+            </div>
+
             <div class="admin__field _required">
                 <label class="admin__field-label"
-                       for="title"><span><?= $block->escapeHtml(__('CMS Block Title')) ?></span></label>
+                       for="title"><span><?= $block->escapeHtml(__('Title')) ?></span></label>
                 <div class="admin__field-control">
                     <input id="title" name="title" type="text" class="admin__control-text" value=""
                            data-validate="{required:true}"/>
@@ -44,7 +62,7 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
 
             <div class="admin__field _required">
                 <label class="admin__field-label"
-                       for="identifier"><span><?= $block->escapeHtml(__('CMS Block Identifier')) ?></span></label>
+                       for="identifier"><span><?= $block->escapeHtml(__('Identifier')) ?></span></label>
                 <div class="admin__field-control">
                     <input id="identifier" name="identifier" type="text" class="admin__control-text" value=""
                            data-validate="{required:true, 'validate-identifier':true}"/>
@@ -53,6 +71,12 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Context Group -->
+        <div class="admin__fieldset">
+            <legend class="admin__legend"><span><?= $block->escapeHtml(__('Context')) ?></span></legend>
+            <br>
 
             <!-- Custom Store Selector Field -->
             <div class="admin__field _required"> <!-- Making it required as generator needs it -->
@@ -61,11 +85,7 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
                 <div class="admin__field-control">
                     <?php
                     // Instantiate and render the custom block directly
-                    // Note: Ideally, this block would be added via layout XML for better practice,
-                    // but direct instantiation is simpler for this modification.
-                    $storeSelectorBlock = $block->getLayout()->createBlock(
-                        StoreSelector::class
-                    );
+                    $storeSelectorBlock = $block->getLayout()->createBlock(StoreSelector::class);
                     echo $storeSelectorBlock
                         ->setName('store_id') // Set the name attribute for form submission
                         ->setId('store_id')   // Set the ID attribute for JS targeting
@@ -78,43 +98,14 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
                 </div>
             </div>
 
-            <!-- New Save As Type Field -->
-            <div class="admin__field _required">
-                <label class="admin__field-label" for="save_as_type"><span><?= $block->escapeHtml(__('Save As')) ?></span></label>
-                <div class="admin__field-control">
-                    <select id="save_as_type" name="save_as_type" class="admin__control-select" data-validate="{required:true}">
-                        <option value=""><?= $block->escapeHtml(__('-- Please Select --')) ?></option>
-                        <option value="page"><?= $block->escapeHtml(__('CMS Page')) ?></option>
-                        <option value="block"><?= $block->escapeHtml(__('CMS Block')) ?></option>
-                    </select>
-                    <div class="admin__field-note">
-                        <span><?= $block->escapeHtml(__('Select whether to save the result as a CMS Page or a CMS Block.')) ?></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- New Predefined Prompt Selector -->
             <div class="admin__field">
-                <label class="admin__field-label" for="predefined_prompt_selector"><span><?= $block->escapeHtml(__('Load Prompt Template')) ?></span></label>
-                <div class="admin__field-control">
-                    <select id="predefined_prompt_selector" name="predefined_prompt_selector" class="admin__control-select">
-                        <option value=""><?= $block->escapeHtml(__('-- Select a template to load --')) ?></option>
-                        <!-- Options will be populated by JS -->
-                    </select>
-                     <div class="admin__field-note">
-                        <span><?= $block->escapeHtml(__('Selecting a template will replace the content of the Custom Prompt field below.')) ?></span>
-                    </div>
-               </div>
-            </div>
-
-            <div class="admin__field _required"> <!-- Making prompt required now -->
                 <label class="admin__field-label"
-                       for="custom_prompt"><span><?= $block->escapeHtml(__('Custom Prompt')) ?></span></label>
+                       for="styling_reference_url"><span><?= $block->escapeHtml(__('Reference Styling URL')) ?></span></label>
                 <div class="admin__field-control">
-                    <textarea id="custom_prompt" name="custom_prompt" class="admin__control-textarea"
-                              rows="15" data-validate="{required:true}"></textarea> <!-- Increased rows and made required -->
+                    <input id="styling_reference_url" name="styling_reference_url" type="url" class="admin__control-text"
+                           value=""/>
                     <div class="admin__field-note">
-                        <span><?= $block->escapeHtml(__('Enter the detailed prompt for the AI. Use the template loader above or write your own.')) ?></span>
+                        <span><?= $block->escapeHtml(__('(Optional) Provide a URL whose HTML structure and style will be used as a reference. Defaults to the selected Store View\'s base URL.')) ?></span>
                     </div>
                 </div>
             </div>
@@ -125,7 +116,7 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
                 <div class="admin__field-control">
                     <input id="reference_image_url" name="reference_image_url" type="url" class="admin__control-text"
                            value=""/>
-                    <div class="admin__field-note">
+                     <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('(Optional) Provide a URL to an image for visual reference.')) ?></span>
                     </div>
                 </div>
@@ -133,22 +124,20 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
 
             <div class="admin__field">
                 <label class="admin__field-label"
-                       for="generate_interactive"><span><?= $block->escapeHtml(__('Generate Interactive Page')) ?></span></label>
+                       for="generate_interactive"><span><?= $block->escapeHtml(__('Interactive with GraphQL')) ?></span></label>
                 <div class="admin__field-control">
                     <input id="generate_interactive" name="generate_interactive" type="checkbox"
                            class="admin__control-checkbox" value="1"/>
-                    <label class="admin__field-label"
-                           for="generate_interactive"><span><?= $block->escapeHtml(__('Enable GraphQL Integration')) ?></span></label>
+                    <label class="admin__field-label" for="generate_interactive" style="margin-left: 5px;"><span><?= $block->escapeHtml(__('Enable')) ?></span></label> <!-- Simplified label -->
                     <div class="admin__field-note">
                         <span><?= $block->escapeHtml(__('If checked, the AI will be instructed to use Magento GraphQL for dynamic data and actions (e.g., product loading, add to cart). If unchecked, the AI will generate static content based on the prompt and context.')) ?></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Re-added Data Source Fields -->
              <div class="admin__field">
                 <label class="admin__field-label"
-                       for="data_source_type"><span><?= $block->escapeHtml(__('Data Source Context (Optional)')) ?></span></label>
+                       for="data_source_type"><span><?= $block->escapeHtml(__('Data Source')) ?></span></label>
                 <div class="admin__field-control">
                     <select id="data_source_type" name="data_source_type" class="admin__control-select">
                         <option value=""><?= $block->escapeHtml(__('-- None --')) ?></option>
@@ -163,7 +152,7 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
 
             <div class="admin__field" id="product_id_field" style="display: none;"> <!-- Initially hidden -->
                 <label class="admin__field-label"
-                       for="product_id"><span><?= $block->escapeHtml(__('Product ID')) ?></span></label>
+                       for="product_id"><span><?= $block->escapeHtml(__('Product/Category ID')) ?></span></label>
                 <div class="admin__field-control">
                     <input id="product_id" name="product_id" type="text" class="admin__control-text" value=""/>
                     <div class="admin__field-note">
@@ -174,7 +163,7 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
 
             <div class="admin__field" id="category_id_field" style="display: none;"> <!-- Initially hidden -->
                 <label class="admin__field-label"
-                       for="category_id"><span><?= $block->escapeHtml(__('Category ID')) ?></span></label>
+                       for="category_id"><span><?= $block->escapeHtml(__('Product/Category ID')) ?></span></label>
                 <div class="admin__field-control">
                     <input id="category_id" name="category_id" type="text" class="admin__control-text" value=""/>
                     <div class="admin__field-note">
@@ -184,6 +173,38 @@ $promptTemplatesJson = $promptTemplatesBlock ? $promptTemplatesBlock->getPromptT
             </div>
         </div>
 
+        <!-- Prompt Group -->
+        <div class="admin__fieldset">
+            <legend class="admin__legend"><span><?= $block->escapeHtml(__('Prompt')) ?></span></legend>
+            <br>
+
+            <div class="admin__field">
+                <label class="admin__field-label" for="predefined_prompt_selector"><span><?= $block->escapeHtml(__('Load Template')) ?></span></label>
+                <div class="admin__field-control">
+                    <select id="predefined_prompt_selector" name="predefined_prompt_selector" class="admin__control-select">
+                        <option value=""><?= $block->escapeHtml(__('-- Select a template to load --')) ?></option>
+                        <!-- Options will be populated by JS -->
+                    </select>
+                     <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('Selecting a template will replace the content of the Prompt field below.')) ?></span>
+                    </div>
+               </div>
+            </div>
+
+            <div class="admin__field _required"> <!-- Making prompt required now -->
+                <label class="admin__field-label"
+                       for="custom_prompt"><span><?= $block->escapeHtml(__('Prompt')) ?></span></label>
+                <div class="admin__field-control">
+                    <textarea id="custom_prompt" name="custom_prompt" class="admin__control-textarea"
+                              rows="15" data-validate="{required:true}"></textarea> <!-- Increased rows and made required -->
+                    <div class="admin__field-note">
+                        <span><?= $block->escapeHtml(__('Enter the detailed prompt for the AI. Use the template loader above or write your own.')) ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Generation Results -->
         <div class="admin__fieldset">
             <legend class="admin__legend"><span><?= $block->escapeHtml(__('AI Generation Results')) ?></span></legend>
             <br>

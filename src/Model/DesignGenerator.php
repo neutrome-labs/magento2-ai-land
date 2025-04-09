@@ -71,6 +71,7 @@ class DesignGenerator
      * @param int $storeId
      * @param string|null $referenceImageUrl
      * @param bool $generateInteractive
+     * @param string|null $stylingReferenceUrl // Added
      * @return string The generated technical design.
      * @throws LocalizedException
      */
@@ -79,9 +80,13 @@ class DesignGenerator
         array   $contextData,
         int     $storeId,
         ?string $referenceImageUrl,
-        bool    $generateInteractive
+        bool    $generateInteractive,
+        ?string $stylingReferenceUrl // Added
     ): string
     {
+        // Enrich context with styling HTML (fetches URL, handles default logic)
+        $this->promptService->enrichContextWithStylingHtml($contextData, $stylingReferenceUrl, $storeId);
+
         // Fetch the generic system prompt for design stage
         $designSystemPrompt = $this->promptService->getPromptFromFile('design_system_prompt.txt');
         if (!$designSystemPrompt) {
@@ -96,6 +101,10 @@ class DesignGenerator
         if (!empty($contextData['store_context'])) {
             $designMessages[] = ['role' => 'user', 'content' => "Store Context:\n" . $contextData['store_context']];
         }
+        // Add styling reference HTML if available
+        if (!empty($contextData['styling_reference_html'])) {
+            $designMessages[] = ['role' => 'user', 'content' => "Styling Reference HTML:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
+        }
         // Add the main user prompt (which now contains all instructions)
         $designMessages[] = ['role' => 'user', 'content' => $customPrompt];
 
@@ -106,7 +115,7 @@ class DesignGenerator
         $technicalDesign = $this->apiClient->getCompletion(
             $designMessages,
             'thinking', // Specify model kind
-            ['research'],
+            [], // todo: temporarly disabled ['research'],
             $storeId
         );
 

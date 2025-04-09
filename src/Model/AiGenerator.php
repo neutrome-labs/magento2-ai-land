@@ -139,6 +139,7 @@ class AiGenerator
      * @param bool $generateInteractive Whether to instruct the AI to use GraphQL.
      * @param string|null $dataSourceType Optional context type ('product', 'category').
      * @param string|int|null $sourceId Optional context ID (Product ID or Category ID).
+     * @param string|null $stylingReferenceUrl Optional URL for styling reference.
      * @return array ['design' => string|null, 'html' => string]
      * @throws LocalizedException
      */
@@ -151,7 +152,8 @@ class AiGenerator
         ?string $referenceImageUrl = null,
         bool    $generateInteractive = false,
         ?string $dataSourceType = null, // Re-added
-                $sourceId = null        // Re-added
+                $sourceId = null,       // Re-added
+        ?string $stylingReferenceUrl = null // Added
     ): array
     {
         $apiKey = $this->getApiKey($storeId);
@@ -179,7 +181,8 @@ class AiGenerator
                     // $generationGoal, // Removed goal parameter
                     $storeId,
                     $referenceImageUrl,
-                    $generateInteractive
+                    $generateInteractive,
+                    $stylingReferenceUrl // Added
                 );
             } catch (LocalizedException $e) {
                 $this->logger->error('Error during Stage 1 Design generation: ' . $e->getMessage());
@@ -199,7 +202,8 @@ class AiGenerator
                     // $generationGoal, // Removed goal parameter
                     $storeId,
                     $referenceImageUrl,
-                    $generateInteractive
+                    $generateInteractive,
+                    $stylingReferenceUrl // Added
                 );
             } catch (LocalizedException $e) {
                 $this->logger->error('Error during Stage 2 HTML generation: ' . $e->getMessage());
@@ -222,7 +226,8 @@ class AiGenerator
                         // $generationGoal, // Removed goal parameter
                         $storeId,
                         $referenceImageUrl,
-                        $generateInteractive
+                        $generateInteractive,
+                        $stylingReferenceUrl // Added
                     );
                     $technicalDesign = $designPlan; // Keep the original design plan
                 } catch (LocalizedException $e) {
@@ -242,7 +247,8 @@ class AiGenerator
                         // $generationGoal, // Removed goal parameter
                         $storeId,
                         $referenceImageUrl,
-                        $generateInteractive
+                        $generateInteractive,
+                        $stylingReferenceUrl // Added
                     );
                     $technicalDesign = null; // No design plan for standard improvement
                 } catch (LocalizedException $e) {
