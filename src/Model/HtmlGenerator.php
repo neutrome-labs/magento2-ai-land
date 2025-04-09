@@ -67,8 +67,6 @@ class HtmlGenerator
     /**
      * Generate HTML from a technical design plan (Stage 2).
      *
-     * @param string $apiKey
-     * @param string $renderingModel
      * @param string $technicalDesign
      * @param array $contextData ['store_context' => string, 'data_source_context' => string] (data_source_context might be empty)
      * @param int $storeId
@@ -78,8 +76,6 @@ class HtmlGenerator
      * @throws LocalizedException
      */
     public function generateHtmlFromDesign(
-        string  $apiKey,
-        string  $renderingModel,
         string  $technicalDesign,
         array   $contextData,
         int     $storeId,
@@ -87,9 +83,6 @@ class HtmlGenerator
         bool    $generateInteractive // Keep for potential context within prompt
     ): string
     {
-        $this->logger->info('Starting AI Generation Stage 2: HTML Generation', ['store_id' => $storeId]);
-        $stageIdentifier = 'Stage 2 (HTML)'; // Define for logging
-
         // Use PromptService and ThemeService
         $htmlSystemPrompt = $this->promptService->getPromptFromFile('html_system_prompt.txt'); // Use PromptService
         if (!$htmlSystemPrompt) {
@@ -118,11 +111,15 @@ class HtmlGenerator
         }
 
         // Use PromptService to add reference image
-        $this->promptService->addReferenceImageToMessages($htmlMessages, $referenceImageUrl, $stageIdentifier);
+        $this->promptService->addReferenceImageToMessages($htmlMessages, $referenceImageUrl, 'HTML Generation'); // Pass simple context for logging if needed
 
-        // Call API
-        $generatedHtml = $this->apiClient->callOpenRouterApi($apiKey, $renderingModel, $htmlMessages, $stageIdentifier);
-        $this->logger->info('Completed AI Generation Stage 2.');
+        // Call API - Pass 'rendering' as modelKind
+        $generatedHtml = $this->apiClient->getCompletion(
+            $htmlMessages,
+            'rendering', // Specify model kind
+            [], // No tools expected at this stage
+            $storeId
+        );
 
         return $generatedHtml;
     }
@@ -130,7 +127,6 @@ class HtmlGenerator
     /**
      * Improve existing HTML content based on user instructions.
      *
-     * @param string $apiKey
      * @param string $renderingModel
      * @param string $customPrompt User's improvement request.
      * @param string|null $currentContent The existing HTML.
@@ -142,8 +138,6 @@ class HtmlGenerator
      * @throws LocalizedException
      */
     public function improveHtml(
-        string  $apiKey,
-        string  $renderingModel,
         string  $customPrompt,
         ?string $currentContent,
         array   $contextData,
@@ -152,9 +146,6 @@ class HtmlGenerator
         bool    $generateInteractive // Keep for potential context within prompt
     ): string
     {
-        $this->logger->info('Performing standard HTML improvement.', ['store_id' => $storeId]);
-        $stageIdentifier = 'Improve Stage'; // Define for logging
-
         if (empty($customPrompt)) {
             throw new LocalizedException(__('An improvement instruction is required in the prompt field when improving content.'));
         }
@@ -187,11 +178,15 @@ class HtmlGenerator
         }
 
         // Use PromptService to add reference image
-        $this->promptService->addReferenceImageToMessages($improveMessages, $referenceImageUrl, $stageIdentifier);
+        $this->promptService->addReferenceImageToMessages($improveMessages, $referenceImageUrl, 'Improve HTML'); // Pass simple context for logging if needed
 
-        // Call API
-        $generatedHtml = $this->apiClient->callOpenRouterApi($apiKey, $renderingModel, $improveMessages, $stageIdentifier);
-        $this->logger->info('Completed AI Generation: Improve HTML.');
+        // Call API - Pass 'rendering' as modelKind
+        $generatedHtml = $this->apiClient->getCompletion(
+            $improveMessages,
+            'rendering', // Specify model kind
+            [], // No tools expected at this stage
+            $storeId
+        );
 
         return $generatedHtml;
     }
@@ -199,7 +194,6 @@ class HtmlGenerator
     /**
      * Retry HTML generation using an existing design plan (Retry Stage 2).
      *
-     * @param string $apiKey
      * @param string $renderingModel
      * @param string $designPlan The existing technical design.
      * @param string $customPrompt Additional instructions for this attempt.
@@ -211,8 +205,6 @@ class HtmlGenerator
      * @throws LocalizedException
      */
     public function retryHtmlFromDesign(
-        string  $apiKey,
-        string  $renderingModel,
         string  $designPlan,
         string  $customPrompt,
         array   $contextData,
@@ -221,11 +213,8 @@ class HtmlGenerator
         bool    $generateInteractive // Keep for potential context within prompt
     ): string
     {
-        $this->logger->info('Retrying Stage 2 HTML generation using existing design plan.', ['store_id' => $storeId]);
-        $stageIdentifier = 'Retry Stage 2 (HTML)'; // Define for logging
-
         if (empty($customPrompt)) {
-            $this->logger->info('No specific improvement prompt provided for retry, generating based on design.');
+            $this->logger->info('No specific improvement prompt provided for retry, generating based on design.'); // Keep this info log
         } else {
             $this->logger->info('Improvement prompt provided for retry: ' . $customPrompt);
         }
@@ -260,11 +249,15 @@ class HtmlGenerator
         }
 
         // Use PromptService to add reference image
-        $this->promptService->addReferenceImageToMessages($retryHtmlMessages, $referenceImageUrl, $stageIdentifier);
+        $this->promptService->addReferenceImageToMessages($retryHtmlMessages, $referenceImageUrl, 'Retry HTML'); // Pass simple context for logging if needed
 
-        // Call API
-        $generatedHtml = $this->apiClient->callOpenRouterApi($apiKey, $renderingModel, $retryHtmlMessages, $stageIdentifier);
-        $this->logger->info('Completed Retry Stage 2.');
+        // Call API - Pass 'rendering' as modelKind
+        $generatedHtml = $this->apiClient->getCompletion(
+            $retryHtmlMessages,
+            'rendering', // Specify model kind
+            [], // No tools expected at this stage
+            $storeId
+        );
 
         return $generatedHtml;
     }

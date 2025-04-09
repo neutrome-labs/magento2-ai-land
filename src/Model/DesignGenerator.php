@@ -27,10 +27,6 @@ use Psr\Log\LoggerInterface;
  */
 class DesignGenerator
 {
-    // Config paths for base prompts
-    const XML_PATH_PRODUCT_PROMPT = 'ailand/openrouter/product_base_prompt';
-    const XML_PATH_CATEGORY_PROMPT = 'ailand/openrouter/category_base_prompt';
-    const MODULE_NAME = 'NeutromeLabs_AiLand'; // Module name for directory reading
 
     /**
      * @var ApiClient
@@ -70,8 +66,6 @@ class DesignGenerator
     /**
      * Generate the technical design plan.
      *
-     * @param string $apiKey
-     * @param string $thinkingModel
      * @param string $customPrompt
      * @param array $contextData ['store_context' => string, 'data_source_context' => string] (data_source_context might be empty)
      * @param int $storeId
@@ -81,19 +75,13 @@ class DesignGenerator
      * @throws LocalizedException
      */
     public function generateDesign(
-        string  $apiKey,
-        string  $thinkingModel,
         string  $customPrompt,
         array   $contextData,
-        // string  $generationGoal, // Removed parameter
         int     $storeId,
         ?string $referenceImageUrl,
         bool    $generateInteractive
     ): string
     {
-        $this->logger->info('Starting AI Generation Stage 1: Technical Design', ['store_id' => $storeId]);
-        $stageIdentifier = 'Stage 1 (Design)'; // Define for logging in helpers
-
         // Fetch the generic system prompt for design stage
         $designSystemPrompt = $this->promptService->getPromptFromFile('design_system_prompt.txt');
         if (!$designSystemPrompt) {
@@ -112,11 +100,15 @@ class DesignGenerator
         $designMessages[] = ['role' => 'user', 'content' => $customPrompt];
 
         // Add reference image if provided
-        $this->promptService->addReferenceImageToMessages($designMessages, $referenceImageUrl, $stageIdentifier);
+        $this->promptService->addReferenceImageToMessages($designMessages, $referenceImageUrl, 'Design'); // Pass simple context for logging if needed
 
-        // Call the API
-        $technicalDesign = $this->apiClient->callOpenRouterApi($apiKey, $thinkingModel, $designMessages, $stageIdentifier);
-        $this->logger->info('Completed AI Generation Stage 1.');
+        // Call the API - Pass 'thinking' as modelKind
+        $technicalDesign = $this->apiClient->getCompletion(
+            $designMessages,
+            'thinking', // Specify model kind
+            ['research'],
+            $storeId
+        );
 
         return $technicalDesign;
     }

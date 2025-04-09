@@ -126,7 +126,7 @@ class ApiKeyStatus extends Field
 
         // API Key exists, try to fetch status and pricing
         $html = '<div>';
-        $statusData = $this->apiClient->getAccountStatus($apiKey);
+        $statusData = $this->apiClient->getAccountStatus();
         $thinkingModelId = $this->scopeConfig->getValue(self::CONFIG_PATH_THINKING_MODEL);
         $renderingModelId = $this->scopeConfig->getValue(self::CONFIG_PATH_RENDERING_MODEL);
 

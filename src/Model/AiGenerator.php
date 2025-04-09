@@ -171,16 +171,9 @@ class AiGenerator
 
         if ($actionType === 'generate') {
             // --- Stage 1: Generate Technical Design ---
-            $thinkingModel = $this->getThinkingModel($storeId);
-            if (!$thinkingModel) {
-                throw new LocalizedException(__('OpenRouter Thinking Model is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
-            }
-
             try {
                 // Pass generationGoal instead of dataSourceType
                 $technicalDesign = $this->designGenerator->generateDesign(
-                    $apiKey,
-                    $thinkingModel,
                     $customPrompt,
                     $contextData, // Contains only store context now
                     // $generationGoal, // Removed goal parameter
@@ -198,16 +191,9 @@ class AiGenerator
             }
 
             // --- Stage 2: Generate HTML from Design ---
-            $renderingModel = $this->getRenderingModel($storeId);
-            if (!$renderingModel) {
-                throw new LocalizedException(__('OpenRouter Rendering Model is not configured. Please configure it in Stores > Configuration > NeutromeLabs > AI Landings.'));
-            }
-
             try {
                 // Pass generationGoal for context if needed by HtmlGenerator
                 $generatedHtml = $this->htmlGenerator->generateHtmlFromDesign(
-                    $apiKey,
-                    $renderingModel,
                     $technicalDesign, // Pass the generated design
                     $contextData, // Contains only store context now
                     // $generationGoal, // Removed goal parameter
@@ -225,25 +211,18 @@ class AiGenerator
             }
 
         } elseif ($actionType === 'improve') {
-            $renderingModel = $this->getRenderingModel($storeId); // Get rendering model once for improve/retry
-            if (!$renderingModel) {
-                throw new LocalizedException(__('OpenRouter Rendering Model is not configured for improvement/retry.'));
-            }
-
             // Determine if it's a retry (has design plan, short/no current content) or standard improvement
             if (!empty($designPlan) && strlen((string)$currentContent) < 300) {
                 // Scenario: Retry Stage 2 using existing design plan
                 try {
                     $generatedHtml = $this->htmlGenerator->retryHtmlFromDesign(
-                    $apiKey,
-                    $renderingModel,
-                    $designPlan,
-                    $customPrompt, // Pass custom prompt as additional instructions
-                    $contextData, // Contains only store context now
-                    // $generationGoal, // Removed goal parameter
-                    $storeId,
-                    $referenceImageUrl,
-                    $generateInteractive
+                        $designPlan,
+                        $customPrompt, // Pass custom prompt as additional instructions
+                        $contextData, // Contains only store context now
+                        // $generationGoal, // Removed goal parameter
+                        $storeId,
+                        $referenceImageUrl,
+                        $generateInteractive
                     );
                     $technicalDesign = $designPlan; // Keep the original design plan
                 } catch (LocalizedException $e) {
@@ -257,15 +236,13 @@ class AiGenerator
                 // Scenario: Standard Improvement
                 try {
                     $generatedHtml = $this->htmlGenerator->improveHtml(
-                    $apiKey,
-                    $renderingModel,
-                    $customPrompt,
-                    $currentContent,
-                    $contextData, // Contains only store context now
-                    // $generationGoal, // Removed goal parameter
-                    $storeId,
-                    $referenceImageUrl,
-                    $generateInteractive
+                        $customPrompt,
+                        $currentContent,
+                        $contextData, // Contains only store context now
+                        // $generationGoal, // Removed goal parameter
+                        $storeId,
+                        $referenceImageUrl,
+                        $generateInteractive
                     );
                     $technicalDesign = null; // No design plan for standard improvement
                 } catch (LocalizedException $e) {
@@ -419,35 +396,5 @@ class AiGenerator
             'store_context' => trim($storeContext),
             'data_source_context' => trim($dataSourceContext)
         ];
-    }
-
-    /**
-     * Get the configured Thinking Model name for a specific store scope.
-     *
-     * @param int $storeId
-     * @return string|null
-     */
-    private function getThinkingModel(int $storeId): ?string
-    {
-        return $this->scopeConfig->getValue(
-            self::XML_PATH_THINKING_MODEL,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        ) ?: self::DEFAULT_THINKING_MODEL;
-    }
-
-    /**
-     * Get the configured Rendering Model name for a specific store scope.
-     *
-     * @param int $storeId
-     * @return string|null
-     */
-    private function getRenderingModel(int $storeId): ?string
-    {
-        return $this->scopeConfig->getValue(
-            self::XML_PATH_RENDERING_MODEL,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        ) ?: self::DEFAULT_RENDERING_MODEL;
     }
 }

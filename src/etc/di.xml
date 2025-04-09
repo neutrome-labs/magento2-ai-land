@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * NeutromeLabs AiLand Dependency Injection Configuration
+ *
+ * @category    NeutromeLabs
+ * @package     NeutromeLabs_AiLand
+ * @author      Cline (AI Assistant)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="NeutromeLabs\AiLand\Model\AiToolPool">
+        <arguments>
+            <argument name="tools" xsi:type="array">
+                <item name="research" xsi:type="object">NeutromeLabs\AiLand\Model\Tool\ResearchTool</item>
+            </argument>
+        </arguments>
+    </type>
+</config>
