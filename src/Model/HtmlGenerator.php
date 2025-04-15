@@ -181,11 +181,11 @@ class HtmlGenerator
         }
         // Add styling reference HTML if available
         if (!empty($contextData['styling_reference_html'])) {
-            $improveMessages[] = ['role' => 'user', 'content' => "Styling Reference HTML (NOTE: this are not available on preview. Use for reference only):\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
+            $improveMessages[] = ['role' => 'user', 'content' => "Styling Reference:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
         }
         $improveMessages[] = ['role' => 'user', 'content' => "Current HTML Block:\n" . ($currentContent ?: '(empty)')];
         if ($tailwindConfig) {
-            $improveMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
+            $improveMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration:\n```javascript\n" . $tailwindConfig . "\n```"];
         }
 
         // Removed base prompt / content goal logic
@@ -259,11 +259,11 @@ class HtmlGenerator
         }
         // Add styling reference HTML if available
         if (!empty($contextData['styling_reference_html'])) {
-            $retryHtmlMessages[] = ['role' => 'user', 'content' => "Styling Reference HTML:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
+            $retryHtmlMessages[] = ['role' => 'user', 'content' => "Styling Reference:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
         }
         $retryHtmlMessages[] = ['role' => 'user', 'content' => "Technical Design Plan:\n" . $designPlan];
         if ($tailwindConfig) {
-            $retryHtmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration (NOTE: this are not available on preview. Use for reference only):\n```javascript\n" . $tailwindConfig . "\n```"];
+            $retryHtmlMessages[] = ['role' => 'user', 'content' => "Tailwind Configuration:\n```javascript\n" . $tailwindConfig . "\n```"];
         }
 
         // Removed base prompt / content goal logic

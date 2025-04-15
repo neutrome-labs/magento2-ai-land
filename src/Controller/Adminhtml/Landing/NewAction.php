@@ -47,8 +47,8 @@ class NewAction extends Action implements HttpGetActionInterface
     {
         /** @var Page $resultPage */
         $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        $resultPage->setActiveMenu('NeutromeLabs_AiLand::generate_landing'); // Highlight the menu item
-        $resultPage->getConfig()->getTitle()->prepend(__('Generate AI Landing'));
+        $resultPage->setActiveMenu('NeutromeLabs_AiLand::generate'); // Highlight the menu item
+        $resultPage->getConfig()->getTitle()->prepend(__('Create Content With AI'));
 
         return $resultPage;
     }

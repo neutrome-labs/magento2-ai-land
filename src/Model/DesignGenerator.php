@@ -103,7 +103,7 @@ class DesignGenerator
         }
         // Add styling reference HTML if available
         if (!empty($contextData['styling_reference_html'])) {
-            $designMessages[] = ['role' => 'user', 'content' => "Styling Reference HTML:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
+            $designMessages[] = ['role' => 'user', 'content' => "Styling Reference:\n```html\n" . $contextData['styling_reference_html'] . "\n```"];
         }
         // Add the main user prompt (which now contains all instructions)
         $designMessages[] = ['role' => 'user', 'content' => $customPrompt];

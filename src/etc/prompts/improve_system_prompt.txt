@@ -12,17 +12,11 @@ Tailwind Usage: Apply utility classes directly to HTML elements. Do not use @app
 
 Alpine.js Usage: Implement or modify interactive behaviors using inline Alpine.js directives.
 
-CDN Links: Ensure the final output still contains the necessary CDN links at the very beginning of the output block:
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-
 Edge Case (Empty Original HTML): If the [Original HTML Block] provided is empty or clearly placeholder/invalid, then attempt to generate a new HTML structure representing the content sections based primarily on the [User's Improvement Request] and the [Original Context Data], again excluding surrounding layout elements.
 
 Output Format:
 
-Output only the raw, complete, updated HTML code block reflecting the requested improvements, beginning with the required CDN script tags.
+Output only the raw, complete, updated HTML code block reflecting the requested improvements.
 
 DO NOT include <html>, <head>, or <body> tags.
 

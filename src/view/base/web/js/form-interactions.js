@@ -29,24 +29,34 @@ define([
         var $previewIframe = $(config.previewIframe);
         var $hiddenContentArea = $(config.previewArea);
         var $form = $(config.formId);
-        var $storeSwitcher = $(config.storeSwitcherSelector || '#store_switcher_select'); // Add selector, provide default ID guess
+        var $storeSwitcher = $(config.storeSwitcherSelector); // Use configured selector
         var isGenerating = false; // Flag to prevent multiple simultaneous requests
+        var previewUrl = config.previewUrl; // Get preview URL from config
+        var formKey = config.formKey; // Get form key from config
 
-        // Initialize form validation
+        // Initialize form validation with Tailwind adjustments
         $form.mage('validation', {
             errorPlacement: function (error, element) {
-                // Default Magento error placement logic (can be customized)
-                var errorPlacementParent = element.parents('.admin__field');
-                if (errorPlacementParent.length) {
-                    errorPlacementParent.addClass('admin__field-error');
-                    error.appendTo(errorPlacementParent.find('.admin__field-control'));
+                // Find the dedicated error placeholder for this element
+                var errorPlaceholder = $('[data-validation-error-for="' + element.attr('id') + '"]');
+                if (errorPlaceholder.length) {
+                    errorPlaceholder.html(error); // Place the error message in the placeholder
                 } else {
-                    error.insertAfter(element);
+                    error.insertAfter(element); // Fallback if no placeholder found
                 }
+                // Add Tailwind classes to highlight the invalid field
+                element.addClass('border-red-500 focus:border-red-500 focus:ring-red-500');
+                element.closest('div').find('label').addClass('text-red-600'); // Highlight label too
             },
             unhighlight: function (element) {
-                // Default Magento unhighlight logic
-                $(element).parent().removeClass('admin__field-error');
+                // Remove error message from placeholder
+                var errorPlaceholder = $('[data-validation-error-for="' + $(element).attr('id') + '"]');
+                if (errorPlaceholder.length) {
+                    errorPlaceholder.empty(); // Clear the placeholder
+                }
+                // Remove Tailwind highlighting classes
+                $(element).removeClass('border-red-500 focus:border-red-500 focus:ring-red-500');
+                $(element).closest('div').find('label').removeClass('text-red-600');
             }
         });
 
@@ -116,17 +126,14 @@ define([
             var $improveButtons = $(improveButtonClass);
             var $buttonsToDisable = (actionType === 'improve') ? $improveButtons : $generateButtons;
             var $otherButtons = (actionType === 'improve') ? $generateButtons : $improveButtons;
-            var loadingText = (actionType === 'improve') ? $t('Improving...') : $t('Generating...');
             var originalButtonTexts = {}; // Store original text for each button
 
             // Disable buttons and show loading state
             $buttonsToDisable.each(function () {
                 var $btn = $(this);
                 originalButtonTexts[$btn.attr('id') || $btn.index()] = $btn.find('span').text(); // Store original text
-                $btn.prop('disabled', true).addClass('disabled').find('span').text(loadingText);
             });
             $otherButtons.prop('disabled', true).addClass('disabled'); // Disable the other set too
-            $previewIframe.contents().find('body').html(loadingText); // Show status in iframe
 
             var formData = $form.serializeArray();
             // Add actionType flag
@@ -146,24 +153,63 @@ define([
                         // Update hidden textarea for form submission
                         $hiddenContentArea.val(response.html);
 
-                        // Update iframe preview
-                        var iframeDoc = $previewIframe[0].contentWindow.document;
-                        iframeDoc.open();
-                        // Add basic styling for preview if desired
-                        // Include CDN links directly in preview for self-contained rendering
-                        iframeDoc.write('<html><head><style>body { font-family: sans-serif; padding: 10px; }</style></head><body>' + response.html + '</body></html>');
-                        iframeDoc.close();
+                        // Update iframe preview using form submission
+                        var htmlContent = response.html;
+                        var storeId = $storeSwitcher.val();
+
+                        if (!storeId) {
+                            alert({title: $t('Preview Error'), content: $t('Please select a Store View before generating a preview.')});
+                            // Optionally clear iframe or show message
+                            $previewIframe.attr('src', 'about:blank');
+                        } else if (previewUrl && formKey) {
+                            // Create a temporary form
+                            var $tempForm = $('<form></form>')
+                                .attr('method', 'post')
+                                .attr('action', previewUrl)
+                                .attr('target', 'ailand_preview_frame') // Target the iframe by name
+                                .css('display', 'none');
+
+                            // Add content input
+                            $('<input>')
+                                .attr('type', 'hidden')
+                                .attr('name', 'content')
+                                .val(htmlContent)
+                                .appendTo($tempForm);
+
+                            // Add form key input
+                            $('<input>')
+                                .attr('type', 'hidden')
+                                .attr('name', 'form_key')
+                                .val(formKey)
+                                .appendTo($tempForm);
+
+                            // Add store_id input
+                            $('<input>')
+                                .attr('type', 'hidden')
+                                .attr('name', 'store_id')
+                                .val(storeId)
+                                .appendTo($tempForm);
+
+                            // Append form to body, submit, and remove
+                            $tempForm.appendTo('body');
+                            $tempForm.submit();
+                            $tempForm.remove();
+                        } else {
+                             alert({title: $t('Configuration Error'), content: $t('Preview URL or Form Key is missing in configuration.')});
+                             $previewIframe.attr('src', 'about:blank');
+                        }
+
                     } else {
                         var errorMessage = response.message || $t('An unknown error occurred during generation.');
                         alert({title: $t('Generation Error'), content: errorMessage});
-                        $previewIframe.contents().find('body').html($t('Generation failed:') + '<br>' + errorMessage);
+                        $previewIframe.attr('src', 'about:blank'); // Clear iframe on error
                         $hiddenContentArea.val(''); // Clear hidden content on error
                     }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     var errorMsg = $t('Could not connect to the generation service. Status: ') + textStatus + ', Error: ' + errorThrown;
                     alert({title: $t('AJAX Error'), content: errorMsg});
-                    $previewIframe.contents().find('body').html($t('Generation failed. Could not connect.'));
+                    $previewIframe.attr('src', 'about:blank'); // Clear iframe on error
                     $hiddenContentArea.val(''); // Clear hidden content on error
                 },
                 complete: function () {

@@ -10,12 +10,6 @@ Tailwind Usage: Apply utility classes directly to the HTML elements. Do not use 
 
 Alpine.js Usage: Implement interactive behaviors using inline Alpine.js directives (x-data, x-init, x-show, x-if, x-for, @click, etc.). Keep the JavaScript logic within these directives.
 
-CDN Links: Include the following CDN links at the very beginning of the output block:
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-
 Content Integration: Populate the HTML structure accurately using the text, product details, image URLs, and other information provided in the [Page Content and Asset Details]. Use appropriate semantic HTML tags (e.g., <section>, <article>, <h2>, <p>, <a>, <button>). If specific image URLs are required by the TDS but not provided in the content details, use placeholder images (e.g., from https://placehold.co/).
 
 Structure Adherence: Strictly follow the component structure, layout (e.g., grids, flexbox as interpreted via Tailwind classes), and interactive element specifications outlined in the [Technical Design Specification (TDS)]. Crucially, this means only generating HTML for the components defined in the TDS and not adding any surrounding <header> or <footer> elements. The generated code should start directly with the first content section specified in the TDS.
@@ -26,7 +20,7 @@ Tips:
 
 Output Format:
 
-Output only the raw HTML code block for the specified content sections, beginning with the required CDN script tags.
+Output only the raw HTML code block for the specified content sections.
 
 DO NOT include <html>, <head>, or <body> tags.
 

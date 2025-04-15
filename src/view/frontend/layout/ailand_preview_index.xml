@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * NeutromeLabs AiLand Frontend Preview Layout
+ */
+-->
+<page layout="1column" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <!-- This block will be populated with the generated HTML by the controller -->
+            <block class="Magento\Framework\View\Element\Text" name="preview.content" />
+        </referenceContainer>
+
+        <!-- Optional: Remove elements not needed for preview if desired -->
+        <!-- Example: Remove breadcrumbs -->
+        <!-- <referenceBlock name="breadcrumbs" remove="true"/> -->
+        <!-- Example: Remove specific header/footer elements if they interfere -->
+        <!-- <referenceBlock name="header.container" remove="true"/> -->
+        <!-- <referenceBlock name="footer-container" remove="true"/> -->
+    </body>
+</page>

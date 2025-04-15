@@ -12,8 +12,8 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
         <!-- Add item under Content -> Elements -->
-        <add id="NeutromeLabs_AiLand::generate_landing"
-             title="Generate AI Landing"
+        <add id="NeutromeLabs_AiLand::generate"
+             title="Create With AI"
              module="NeutromeLabs_AiLand"
              sortOrder="100"
              parent="Magento_Backend::content_elements"

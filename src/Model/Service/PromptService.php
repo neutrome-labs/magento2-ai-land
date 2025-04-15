@@ -141,39 +141,75 @@ class PromptService
         }
 
         // Fetch HTML if we have a valid URL
-        if (!empty($finalUrl) && filter_var($finalUrl, FILTER_VALIDATE_URL)) {
-            try {
-                $this->curlClient->setOption(CURLOPT_TIMEOUT, 10); // Set timeout
-                $this->curlClient->setOption(CURLOPT_FOLLOWLOCATION, true); // Follow redirects
-                $this->curlClient->setOption(CURLOPT_USERAGENT, 'Magento AiLand Module Fetcher'); // Set user agent
-                $this->curlClient->get($finalUrl);
-                $status = $this->curlClient->getStatus();
+        if (!empty($finalUrl)) { // Basic check first, more robust validation later if needed
+            $urlToFetch = $finalUrl;
+            $userPass = null;
+            $urlParts = parse_url($finalUrl);
 
-                if ($status === 200) {
-                    $fetchedHtml = $this->curlClient->getBody();
+            // Check for basic auth credentials
+            if (isset($urlParts['user'])) {
+                $userPass = $urlParts['user'];
+                if (isset($urlParts['pass'])) {
+                    $userPass .= ':' . $urlParts['pass'];
+                }
+                // Rebuild URL without user:pass@ for the actual request and logging
+                $urlToFetch = ($urlParts['scheme'] ?? 'http') . '://' . ($urlParts['host'] ?? '');
+                if (isset($urlParts['port'])) { $urlToFetch .= ':' . $urlParts['port']; }
+                $urlToFetch .= ($urlParts['path'] ?? '/');
+                if (isset($urlParts['query'])) { $urlToFetch .= '?' . $urlParts['query']; }
+                if (isset($urlParts['fragment'])) { $urlToFetch .= '#' . $urlParts['fragment']; }
+
+                $this->logger->info('Basic auth credentials detected for styling reference URL.', ['url' => $urlToFetch]); // Log URL without creds
+            }
+
+            // Validate the potentially reconstructed URL
+            if (filter_var($urlToFetch, FILTER_VALIDATE_URL)) {
+                try {
+                    $this->curlClient->setOption(CURLOPT_TIMEOUT, 10); // Set timeout
+                    $this->curlClient->setOption(CURLOPT_FOLLOWLOCATION, true); // Follow redirects
+                    $this->curlClient->setOption(CURLOPT_USERAGENT, 'Magento AiLand Module Fetcher'); // Set user agent
+
+                    // Set basic auth if detected
+                    if ($userPass) {
+                        $this->curlClient->setOption(CURLOPT_USERPWD, $userPass);
+                    } else {
+                        // Ensure USERPWD is not set from a previous request if reusing the client instance
+                        $this->curlClient->setOption(CURLOPT_USERPWD, null);
+                    }
+
+                    $this->curlClient->get($urlToFetch); // Use URL without credentials
+                    $status = $this->curlClient->getStatus();
+
+                    if ($status === 200) {
+                        $fetchedHtml = $this->curlClient->getBody();
                     // Basic HTML cleanup (remove scripts, styles, head)
                     $fetchedHtml = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $fetchedHtml);
                     $fetchedHtml = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $fetchedHtml);
                     $fetchedHtml = preg_replace('/<head\b[^>]*>(.*?)<\/head>/is', '', $fetchedHtml);
                     $fetchedHtml = strip_tags($fetchedHtml, '<div><span><p><a><img><h1><h2><h3><h4><h5><h6><ul><ol><li><table><tr><td><th><section><article><header><footer><nav><main><aside><button><input><form><label>'); // Keep basic structural/content tags
-                    $fetchedHtml = trim($fetchedHtml);
+                        $fetchedHtml = trim($fetchedHtml);
 
-                    if (mb_strlen($fetchedHtml) > $maxHtmlLength) {
-                        $fetchedHtml = mb_substr($fetchedHtml, 0, $maxHtmlLength) . '... [truncated]';
-                        $this->logger->info('Fetched styling reference HTML truncated.', ['url' => $finalUrl, 'length' => $maxHtmlLength]);
+                        if (mb_strlen($fetchedHtml) > $maxHtmlLength) {
+                            $fetchedHtml = mb_substr($fetchedHtml, 0, $maxHtmlLength) . '... [truncated]';
+                            $this->logger->info('Fetched styling reference HTML truncated.', ['url' => $urlToFetch, 'length' => $maxHtmlLength]); // Log URL without creds
+                        }
+                        $this->logger->info('Successfully fetched styling reference HTML.', ['url' => $urlToFetch, 'length' => mb_strlen($fetchedHtml)]); // Log URL without creds
+                    } else {
+                        $this->logger->warning('Failed to fetch styling reference URL. Status: ' . $status, ['url' => $urlToFetch]); // Log URL without creds
+                        $fetchedHtml = '(Error fetching styling reference URL: Status ' . $status . ')';
                     }
-                    $this->logger->info('Successfully fetched styling reference HTML.', ['url' => $finalUrl, 'length' => mb_strlen($fetchedHtml)]);
-                } else {
-                    $this->logger->warning('Failed to fetch styling reference URL. Status: ' . $status, ['url' => $finalUrl]);
-                    $fetchedHtml = '(Error fetching styling reference URL: Status ' . $status . ')';
+                } catch (\Exception $e) {
+                    $this->logger->error('Exception during styling reference URL fetch.', ['url' => $urlToFetch, 'exception' => $e->getMessage()]); // Log URL without creds
+                    $fetchedHtml = '(Exception fetching styling reference URL)';
+                } finally {
+                     // Clean up basic auth option after the request
+                     $this->curlClient->setOption(CURLOPT_USERPWD, null);
                 }
-            } catch (\Exception $e) {
-                $this->logger->error('Exception during styling reference URL fetch.', ['url' => $finalUrl, 'exception' => $e->getMessage()]);
-                $fetchedHtml = '(Exception fetching styling reference URL)';
+            } else {
+                 // This case handles if the original or reconstructed URL is invalid
+                 $this->logger->warning('Invalid URL provided or generated for styling reference.', ['original_url' => $finalUrl, 'processed_url' => $urlToFetch]);
+                 $fetchedHtml = '(Invalid styling reference URL provided)';
             }
-        } elseif (!empty($finalUrl)) {
-             $this->logger->warning('Invalid URL provided for styling reference.', ['url' => $finalUrl]);
-             $fetchedHtml = '(Invalid styling reference URL provided)';
         }
 
         // Add the fetched HTML (or error message) to the context data

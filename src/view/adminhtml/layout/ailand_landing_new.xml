@@ -10,10 +10,11 @@
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
-    <update handle="styles"/> <!-- Include standard backend styles -->
     <head>
         <!-- Add necessary CSS/JS if needed -->
         <css src="jquery/fileUploader/css/jquery.fileupload-ui.css"/>
+        <!-- Add Tailwind Play CDN -->
+        <script src="https://cdn.tailwindcss.com" src_type="url"></script> <!-- Added src_type="url" -->
     </head>
     <body>
         <referenceContainer name="content">
